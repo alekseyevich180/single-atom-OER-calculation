@@ -1,0 +1,20 @@
+# ========= 全局控制 =========
+USE_LDAU=true        # true/false: 是否写出 LDAU block
+FORCE_SOC=auto       # auto / on / off  : 是否加 SOC (LSORBIT 等)
+APPEND_COMMON_TAIL=true   # true/false: 是否追加统一尾段(ENCUT/IVDW等)
+
+DFT_U_DB=default     # 以后如果想切不同的U表，可以支持 default / custom
+
+USE_VDW=true         # true/false: 是否写 IVDW
+VDW_FLAG=12          # 具体 IVDW 数值, 例如 12=DFT-D3, 4=optB86b-vdW etc. (按你环境来)
+
+USE_DIPOL=false      
+IDIPOL_DIR=4         
+
+USE_SPIN=true        
+FIX_NUPDOWN=false    
+NUPDOWN_VALUE=0      
+
+# 细节：有的体系要+U，有的体系不要
+# 我们还要区分"这是氧化物还是金属"
+PHASE_MODE=oxide     # oxide / metal
