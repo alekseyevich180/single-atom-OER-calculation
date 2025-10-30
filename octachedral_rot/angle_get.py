@@ -4,7 +4,7 @@ import math
 import numpy as np
 import sys
 current_path = os.path.dirname(os.path.abspath(__file__))
-module_path = r"C:\Users\wu\Desktop\python_geo\share"
+module_path = r"C:\Users\yingkaiwu\Desktop\single-atom\octachedral_rot\share"
 sys.path.append(module_path)
 from atom_location import parse_poscar
 from atom_location import calculate_angle
