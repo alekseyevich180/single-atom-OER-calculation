@@ -1,0 +1,79 @@
+# Global Bayesian Optimization settings (edit as needed)
+
+# Initialization and BO totals
+INIT_NUM=100
+BO_NUM=200
+
+# How many candidates to pick per round
+NUM_CANDIDATES=4
+
+# Acquisition function and hyperparameters
+# Options: LCB or EI
+ACQ_FUNCTION=EI
+KAPPA=7
+XI=0.001
+
+# Target and features
+# By default, TARGET_COLUMN=result and features are all other columns
+# Uncomment and edit to override:
+# TARGET_COLUMN=result
+# FEATURE_COLUMNS=feature1,feature2,feature3
+
+# Optional row filters (Pandas query expressions)
+# FILTER_DONE=group=='A' and temp<800
+# FILTER_TODO=group=='A'
+
+# ----------------------
+# Optuna script controls
+# ----------------------
+# Training data CSV (required for optuna_ml.py)
+# DONE_CSV=path/to/done.csv
+
+# Angle/Distance search ranges (required for optuna_ml.py)
+# ANGLE_MIN=80
+# ANGLE_MAX=110
+# DIST_MIN=1.8
+# DIST_MAX=2.5
+
+# Number of trials and seed
+# OPTUNA_N_TRIALS=50
+# OPTUNA_SEED=42
+
+# Optional fixed feature values when not optimized by Optuna
+# FIXED_FEATURES=pressure=1.0,temperature=300
+
+"""
+        可控对象范围
+
+训练样本来源：df_with_energy 经过筛选与列选择后的子集。筛选与列选择在代码里由 par 控制。carbon_chain_rot/share/bayes_opt.py:95
+候选池来源：df_without_energy 经过同样规则筛选与列选择后的子集。carbon_chain_rot/share/bayes_opt.py:96
+用 par 控制训练对象
+
+目标列
+TARGET_COLUMN: 目标名（默认 result，最小化）。carbon_chain_rot/share/bayes_opt.py:90
+特征列
+FEATURE_COLUMNS: 逗号分隔的特征列列表；未设置时用“除目标外的全部列”。carbon_chain_rot/share/bayes_opt.py:91,112
+行筛选（训练/候选分别独立）
+FILTER_DONE: 对 df_with_energy 的 Pandas query 表达式。carbon_chain_rot/share/bayes_opt.py:100
+FILTER_TODO: 对 df_without_energy 的 Pandas query 表达式。carbon_chain_rot/share/bayes_opt.py:105
+样本批量与采集函数
+NUM_CANDIDATES 每轮挑选个数（默认 4）。carbon_chain_rot/share/bayes_opt.py:79
+ACQ_FUNCTION 取 EI 或 LCB（默认 EI）；KAPPA（LCB）、XI（EI）。carbon_chain_rot/share/bayes_opt.py:85-87,229
+par 放置与优先级
+
+优先使用 all_env["PAR_FILE"]；否则读 carbon_chain_rot/par；再退回 carbon_chain_rot/par_all。carbon_chain_rot/share/bayes_opt.py:27
+示例 par 片段（控制训练对象）
+
+carbon_chain_rot/par:1
+FEATURE_COLUMNS=feat1,feat2,feat3
+TARGET_COLUMN=result
+FILTER_DONE=group=='A' and temp<800
+FILTER_TODO=group=='A'
+NUM_CANDIDATES=6
+ACQ_FUNCTION=EI
+XI=0.01
+注意
+
+需要最大化时，建议在传入前将目标转为可最小化，如 result = -metric。
+复杂筛选（如按索引列表）不便用 query 表达式时，可在调用前用 Pandas 先过滤，再传入函数。
+"""

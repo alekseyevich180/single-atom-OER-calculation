@@ -12,8 +12,8 @@ or
 What it will do:
   - Interpret "Fe_pv_3" (or "Fe_3", "Ti_sv_2", etc.) as:
         base element, POTCAR tag, spin hint
-  - Look inside that directory for subfolders (e.g. OH, OOH, O, ...)
-    and for each subfolder that contains POSCAR:
+  - Optionally look inside that directory for subfolders (e.g. OH, OOH, O, ...)
+    controlled by par: SCAN_SUBDIRS=true/false. For each target folder that contains POSCAR:
         * read global par
         * (optionally) ensure USE_SPIN=True if name had _3 etc.
         * generate INCAR in that subfolder
@@ -320,11 +320,15 @@ def main():
         base_cfg["USE_SPIN"] = True
         # do NOT touch FIX_NUPDOWN or NUPDOWN_VALUE here
 
-    # 3. 遍历父目录下一层子目录 + 父目录本身
-    subdirs = [os.path.join(parent_abs, d)
-               for d in os.listdir(parent_abs)
-               if os.path.isdir(os.path.join(parent_abs, d))]
-    subdirs.append(parent_abs)
+    # 3. 遍历父目录（可选：包含第一层子目录）
+    scan_subdirs = base_cfg.get("SCAN_SUBDIRS", True)
+    if scan_subdirs:
+        subdirs = [os.path.join(parent_abs, d)
+                   for d in os.listdir(parent_abs)
+                   if os.path.isdir(os.path.join(parent_abs, d))]
+        subdirs.append(parent_abs)
+    else:
+        subdirs = [parent_abs]
 
     any_done = False
     for d in subdirs:
@@ -353,9 +357,14 @@ def main():
             print("     NUPDOWN not fixed")
 
     if not any_done:
-        raise FileNotFoundError(
-            f"No POSCAR found under {parent_abs} or its first-level subfolders."
-        )
+        if scan_subdirs:
+            raise FileNotFoundError(
+                f"No POSCAR found under {parent_abs} or its first-level subfolders."
+            )
+        else:
+            raise FileNotFoundError(
+                f"No POSCAR found in {parent_abs}."
+            )
 
 if __name__ == "__main__":
     main()
