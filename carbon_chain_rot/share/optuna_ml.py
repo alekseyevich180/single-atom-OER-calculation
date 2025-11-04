@@ -136,24 +136,19 @@ def build_objective(model: LinearRegressor,
     return objective
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Optuna-based optimizer for angle/distance using par control')
-    parser.add_argument('--par', default=None, help='Path to par file (default: auto-detect)')
-    parser.add_argument('--done', default=None, help='Path to done CSV (override par DONE_CSV)')
-    parser.add_argument('--trials', type=int, default=None, help='Number of Optuna trials (override par)')
-    parser.add_argument('--direction', choices=['min','max'], default=None, help='Optimization direction (default from par or min)')
-    parser.add_argument('--out', default=None, help='Write best params to JSON file')
-    args = parser.parse_args()
-
+def run_optuna(par_path: str = None,
+               done_csv: str = None,
+               trials: int = None,
+               direction: str = None,
+               out_path: str = None):
     base_dir = os.path.dirname(os.path.dirname(__file__))  # carbon_chain_rot
-    par_path = args.par or get_par_path(base_dir)
+    par_path = par_path or get_par_path(base_dir)
     cfg = load_par(par_path)
 
     # data locations
-    done_csv = args.done or cfg.get('DONE_CSV')
+    done_csv = done_csv or cfg.get('DONE_CSV')
     if not done_csv or not os.path.isfile(done_csv):
-        print('ERROR: DONE_CSV not provided or file missing. Set in par or via --done', file=sys.stderr)
-        sys.exit(2)
+        raise FileNotFoundError('DONE_CSV not provided or file missing. Set in par or pass done_csv')
 
     # columns and filters
     target_col = cfg.get('TARGET_COLUMN', 'result')
@@ -161,17 +156,13 @@ def main():
     filter_done = cfg.get('FILTER_DONE')
 
     # ranges and trials
-    try:
-        angle_min = float(cfg.get('ANGLE_MIN'))
-        angle_max = float(cfg.get('ANGLE_MAX'))
-        dist_min = float(cfg.get('DIST_MIN'))
-        dist_max = float(cfg.get('DIST_MAX'))
-    except Exception:
-        print('ERROR: ANGLE_MIN/ANGLE_MAX and DIST_MIN/DIST_MAX must be set in par', file=sys.stderr)
-        sys.exit(2)
+    angle_min = float(cfg.get('ANGLE_MIN'))
+    angle_max = float(cfg.get('ANGLE_MAX'))
+    dist_min = float(cfg.get('DIST_MIN'))
+    dist_max = float(cfg.get('DIST_MAX'))
 
-    n_trials = args.trials if args.trials is not None else int(cfg.get('OPTUNA_N_TRIALS', 50))
-    direction = args.direction or cfg.get('OPTUNA_DIRECTION', 'min').lower()
+    n_trials = trials if trials is not None else int(cfg.get('OPTUNA_N_TRIALS', 50))
+    direction = (direction or cfg.get('OPTUNA_DIRECTION', 'min')).lower()
     if direction not in ('min','max'):
         direction = 'min'
 
@@ -192,8 +183,7 @@ def main():
     # check required columns
     missing = [c for c in feat_cols + [target_col] if c not in df.columns]
     if missing:
-        print(f'ERROR: missing columns in DONE_CSV: {missing}', file=sys.stderr)
-        sys.exit(2)
+        raise ValueError(f'missing columns in DONE_CSV: {missing}')
 
     # fit simple linear regressor as surrogate
     X = df[feat_cols]
@@ -205,8 +195,7 @@ def main():
 
     # require optuna
     if optuna is None:
-        print('ERROR: optuna is not installed. Please `pip install optuna` and retry.', file=sys.stderr)
-        sys.exit(2)
+        raise RuntimeError('optuna is not installed. Please `pip install optuna`.')
 
     sampler = optuna.samplers.TPESampler(seed=int(cfg.get('OPTUNA_SEED', 42)))
     study = optuna.create_study(direction='minimize' if direction=='min' else 'maximize', sampler=sampler)
@@ -222,14 +211,30 @@ def main():
         'done_csv': done_csv,
     }
 
-    out_text = json.dumps(best, indent=2)
-    if args.out:
-        with open(args.out, 'w', encoding='utf-8') as f:
-            f.write(out_text + '\n')
-    else:
-        print(out_text)
+    if out_path:
+        with open(out_path, 'w', encoding='utf-8') as f:
+            f.write(json.dumps(best, indent=2) + '\n')
+    return best
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Optuna-based optimizer for angle/distance using par control')
+    parser.add_argument('--par', default=None, help='Path to par file (default: auto-detect)')
+    parser.add_argument('--done', default=None, help='Path to done CSV (override par DONE_CSV)')
+    parser.add_argument('--trials', type=int, default=None, help='Number of Optuna trials (override par)')
+    parser.add_argument('--direction', choices=['min','max'], default=None, help='Optimization direction (default from par or min)')
+    parser.add_argument('--out', default=None, help='Write best params to JSON file')
+    args = parser.parse_args()
+
+    try:
+        best = run_optuna(par_path=args.par, done_csv=args.done, trials=args.trials,
+                          direction=args.direction, out_path=args.out)
+    except Exception as e:
+        print(f'ERROR: {e}', file=sys.stderr)
+        sys.exit(2)
+    if not args.out:
+        print(json.dumps(best, indent=2))
 
 
 if __name__ == '__main__':
     main()
-

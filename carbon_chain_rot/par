@@ -13,6 +13,13 @@ ACQ_FUNCTION=EI
 KAPPA=7
 XI=0.001
 
+# ----------------------
+# Model selection
+# ----------------------
+# Choose which optimizer to run in higher-level selector
+MODEL=bayes
+MODEL=optuna
+
 # Target and features
 # By default, TARGET_COLUMN=result and features are all other columns
 # Uncomment and edit to override:
@@ -41,6 +48,18 @@ XI=0.001
 
 # Optional fixed feature values when not optimized by Optuna
 # FIXED_FEATURES=pressure=1.0,temperature=300
+
+# ----------------------
+# Structure analysis (functional_groups.py)
+# ----------------------
+# Input structure for functional group detection (CIF or POSCAR/CONTCAR)
+STRUCTURE_FILE=carbon_chain_rot/CONTCAR
+# Optional bond tolerance added to sum of covalent radii (Å)
+BOND_TOL=0.45
+# Minimum length (number of carbons) to report carbon-chain segments
+# CHAIN_MIN_LEN=3
+# Optional selection of a molecule by Z-axis window (Å): "zmin,zmax"
+SELECT_Z_RANGE=10.0,15.0
 
 """
         可控对象范围
