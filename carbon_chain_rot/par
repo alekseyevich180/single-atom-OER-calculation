@@ -23,12 +23,12 @@ MODEL=optuna
 # Target and features
 # By default, TARGET_COLUMN=result and features are all other columns
 # Uncomment and edit to override:
-# TARGET_COLUMN=result
-# FEATURE_COLUMNS=feature1,feature2,feature3
+TARGET_COLUMN=result
+FEATURE_COLUMNS=feature1,feature2,feature3
 
 # Optional row filters (Pandas query expressions)
-# FILTER_DONE=group=='A' and temp<800
-# FILTER_TODO=group=='A'
+FILTER_DONE=group=='A' and temp<800
+FILTER_TODO=group=='A'
 
 # ----------------------
 # Optuna script controls
