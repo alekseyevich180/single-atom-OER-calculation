@@ -1,5 +1,7 @@
 # Global Bayesian Optimization settings (edit as needed)
 
+DFT = RPBE  #optPBE, RPBE, PBE, PBE_D3.
+
 # Initialization and BO totals
 INIT_NUM=100
 BO_NUM=200
