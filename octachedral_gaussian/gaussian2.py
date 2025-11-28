@@ -51,7 +51,7 @@ def remove_outliers(X, y, method='zscore', z_threshold=2, iqr_multiplier=1, mad_
 # -1.23502,180,89.92
 # 用逗号分隔
 # ==========================
-data = np.loadtxt('Cr.dat', delimiter=',')
+data = np.loadtxt('Ir.dat', delimiter=',')
 
 # 假设：
 # 第 0 列：IpCOHP
