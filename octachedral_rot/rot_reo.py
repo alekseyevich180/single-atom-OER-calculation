@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 
 import numpy as np
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 module_path = os.path.join(BASE_DIR, "share")
 if module_path not in sys.path:
     sys.path.append(module_path)
@@ -412,7 +412,7 @@ def run_rotation(settings: RotationSettings):
 
         calculated_angle = calculate_angle(M, angle_reference, O_target_final)
         results.append(
-            f"角度: {angle} , 计算的夹角: {calculated_angle:.2f} , surface_angle: {surface_angle:.2f}\n"
+            f"角度， {angle} , 计算的夹角， {calculated_angle:.2f} , surface_angle， {surface_angle:.2f}\n"
         )
 
     results_path = (
@@ -435,4 +435,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
