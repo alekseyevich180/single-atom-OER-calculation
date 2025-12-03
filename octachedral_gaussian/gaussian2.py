@@ -198,7 +198,7 @@ print("Optimized kernel:\n", gpr.kernel_)
 # ==========================
 
 # 在「原始角度」空间生成趋势线点
-X_pred_original = np.linspace(140, 180, 1000).reshape(-1, 1)  # 你关心的角度范围
+X_pred_original = np.linspace(120, 180, 1000).reshape(-1, 1)  # 你关心的角度范围
 X_pred_scaled = scaler_X.transform(X_pred_original)
 
 y_pred_scaled = gpr.predict(X_pred_scaled)
@@ -228,8 +228,8 @@ plt.plot(
 plt.title(f'Gaussian Process Regression\nTrain R²: {train_r2:.3f}, Test R²: {test_r2:.3f}', fontsize=16)
 plt.xlabel('O-Cr-O angle (°)', fontsize=12)
 plt.ylabel('-IpCOHP (eV)', fontsize=12)
-plt.ylim(1, 2.0)
-plt.xlim(140, 180)
+plt.ylim(1.2, 1.7)
+plt.xlim(120, 181)
 plt.legend(fontsize=12, loc='lower right')
 plt.tight_layout()
 plt.show()
