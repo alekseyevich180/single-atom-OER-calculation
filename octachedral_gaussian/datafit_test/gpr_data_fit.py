@@ -196,51 +196,8 @@ print(f"最佳 AIC: {best_aic:.3f}, 最佳平均 R²: {best_r2:.3f}")
 # ==========================
 # 4. 用最佳方法和核函数重新训练 + 评估
 # ==========================
-# 1. 使用最佳异常值处理
 X_filtered, y_filtered = remove_outliers(X, y, method=best_method)
 
-# --- ⭐ 2. 实现滑动窗口平滑 (新逻辑) ---
-if cfg.BINNING_ENABLED:
-    print(f"启用滑动窗口平滑。窗口宽度: {cfg.WINDOW_WIDTH}°，步长: {cfg.STEP_SIZE}°")
-    
-    X_original = X_filtered.flatten()
-    y_original = y_filtered.ravel()
-
-    # 确定起始点和结束点（使用整个数据范围）
-    start_point = X_original.min()
-    end_point = X_original.max()
-
-    X_smoothed = []
-    y_smoothed = []
-
-    # 从数据的最小角度开始，按步长移动窗口
-    current_center = start_point + cfg.WINDOW_WIDTH / 2.0
-    
-    # 增加一个小容差以确保覆盖最大值
-    while current_center <= end_point + cfg.WINDOW_WIDTH / 2.0 + 1e-6: 
-        # 定义当前窗口的上下限
-        lower_bound = current_center - cfg.WINDOW_WIDTH / 2.0
-        upper_bound = current_center + cfg.WINDOW_WIDTH / 2.0
-        
-        # 筛选出窗口内的数据点
-        window_mask = (X_original >= lower_bound) & (X_original < upper_bound)
-        y_in_window = y_original[window_mask]
-        
-        if len(y_in_window) > 0:
-            # 记录窗口的中心点（新的 X 值）
-            X_smoothed.append(current_center)
-            # 记录窗口内 Y 值的平均值（新的 Y 值）
-            y_smoothed.append(np.mean(y_in_window))
-
-        # 移动到下一个窗口中心点
-        current_center += cfg.STEP_SIZE
-        
-    X_filtered = np.array(X_smoothed).reshape(-1, 1)
-    y_filtered = np.array(y_smoothed).ravel()
-    print(f"滑动窗口平滑完成。生成数据点: {len(y_filtered)} 个。")
-# -----------------------------------------------
-
-# 3. 标准化
 scaler_X = StandardScaler()
 scaler_y = StandardScaler()
 X_scaled = scaler_X.fit_transform(X_filtered)
@@ -250,13 +207,16 @@ X_train, X_test, y_train, y_test = train_test_split(
     X_scaled, y_scaled, test_size=cfg.TEST_SIZE, random_state=cfg.RANDOM_STATE
 )
 
+
 final_kernel = cfg.KERNELS[best_kernel]
 gpr = GaussianProcessRegressor(
     kernel=final_kernel,
     n_restarts_optimizer=cfg.FINAL_N_RESTARTS,
-    alpha=cfg.FINAL_ALPHA, # 使用增强鲁棒性的 FINAL_ALPHA
+    # ⭐ 这里使用更新后的 FINAL_ALPHA (例如 1e-4)
+    alpha=cfg.FINAL_ALPHA, 
     normalize_y=True
 )
+
 with warnings.catch_warnings():
     warnings.simplefilter("ignore", ConvergenceWarning)
     gpr.fit(X_train, y_train)
@@ -265,7 +225,6 @@ train_r2 = r2_score(y_train, gpr.predict(X_train))
 test_r2 = r2_score(y_test, gpr.predict(X_test))
 print(f"\nFinal Train R²: {train_r2:.3f}, Test R²: {test_r2:.3f}")
 print("Optimized kernel parameters:\n", gpr.kernel_)
-
 
 # ==========================
 # 5. 可视化：散点 + 趋势线

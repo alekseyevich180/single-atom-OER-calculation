@@ -32,6 +32,11 @@ INITIAL_N_RESTARTS = 5
 FINAL_ALPHA = 1e-4       # 从 1e-5 增大到 1e-4，减少过度拟合和震荡
 FINAL_N_RESTARTS = 20    
 
+# --- 6. 数据平滑配置 ---
+BINNING_ENABLED = True     # ⭐ 启用滑动窗口平滑
+WINDOW_WIDTH = 0.5         # 窗口的宽度 (例如 0.5 度)
+STEP_SIZE = 0.25           # 滑动窗口的步长 (例如 0.25 度，重叠 50%)
+
 # --- 4. 候选核函数定义 (优化后) ---
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, Matern, WhiteKernel
 
@@ -42,8 +47,9 @@ KERNELS = {
     
     # ⭐ 优化 Matern_WK：赋予 WhiteKernel 更大的优化空间
     "Matern_WK": C(1.0, (1e-3, 1e5)) * Matern(length_scale=12.0, nu=1.5) +
-                 WhiteKernel(noise_level=1e-5, noise_level_bounds=(1e-7, 1e-1)), # 初始噪声设高，鼓励模型学习噪声
-                 
+                 WhiteKernel(noise_level=1e-5, noise_level_bounds=(1e-7, 1e-1)), 
+    "Matern_WK_Simple": C(1.0, (1e-2, 1e2)) * Matern(length_scale=5.0, nu=2.5) +
+                    WhiteKernel(noise_level=1e-5, noise_level_bounds=(1e-7, 1e-1)),             
     "Matern_WK_RBF": C(1.5, (1e-2, 1e2)) * Matern(length_scale=1.0, nu=1.5,
                                                    length_scale_bounds=(1e-3, 1e3)) +
                      WhiteKernel(noise_level=1e-7, noise_level_bounds=(1e-8, 1e-1)) +
