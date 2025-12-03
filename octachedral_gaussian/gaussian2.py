@@ -51,12 +51,12 @@ def remove_outliers(X, y, method='zscore', z_threshold=2, iqr_multiplier=1, mad_
 # -1.23502,180,89.92
 # 用逗号分隔
 # ==========================
-data = np.loadtxt('Ir.dat', delimiter=',')
+data = np.loadtxt('Ir.dat', delimiter=',', skiprows=1,usecols=range(4))
 
 # 假设：
 # 第 0 列：IpCOHP
 # 第 1 列：O–Ir–O 角度
-X = data[:, 1].reshape(-1, 1)  # O–Ir–O angle
+X = data[:, 2].reshape(-1, 1)  # O–Ir–O angle
 y = -data[:, 0]                # -IpCOHP (使其越大越稳定之类)
 
 # ==========================
