@@ -15,7 +15,7 @@ USE_COLS = range(4)
 
 # --- 2. 异常值检测参数 (优化后) ---
 DETECTION_METHODS = ['zscore', 'iqr', 'mad']
-Z_THRESHOLD = 2.5      
+Z_THRESHOLD = 1.5      
 IQR_MULTIPLIER = 2.0   # ⭐ 提高到 2.0，以更严格地移除极端异常值
 MAD_THRESHOLD = 3.0    # ⭐ 提高到 3.0，增强基于中位数的稳健性
 
