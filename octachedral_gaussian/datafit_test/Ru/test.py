@@ -238,6 +238,14 @@ if cfg.BINNING_ENABLED:
     X_filtered = np.array(X_smoothed).reshape(-1, 1)
     y_filtered = np.array(y_smoothed).ravel()
     print(f"滑动窗口平滑完成。生成数据点: {len(y_filtered)} 个。")
+
+    # --- ⭐ 2.1 在平滑后再次进行异常值检测 (新步骤) ---
+    print("在平滑数据后再次进行异常值检测...")
+    points_before = len(y_filtered)
+    # 使用 z-score 方法移除平滑后的数据中的异常值
+    X_filtered, y_filtered = remove_outliers(X_filtered, y_filtered, method='zscore')
+    points_after = len(y_filtered)
+    print(f"移除了 {points_before - points_after} 个平滑后的异常点。剩余数据点: {points_after} 个。")
 # -----------------------------------------------
 
 # 3. 标准化
@@ -379,4 +387,3 @@ plt.legend(fontsize=cfg.FONT_SIZE_LEGEND)
 plt.tight_layout()
 save_plot("Figure_7_Residuals_Distribution")
 plt.show()
-

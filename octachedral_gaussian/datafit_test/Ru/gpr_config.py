@@ -29,13 +29,13 @@ INITIAL_ALPHA = 1e-2
 INITIAL_N_RESTARTS = 5   
 
 # 最终训练时的参数 (⭐ 关键调整：增加 GPR 鲁棒性)
-FINAL_ALPHA = 1e-4       # 从 1e-5 增大到 1e-4，减少过度拟合和震荡
+FINAL_ALPHA = 1e-2       # 从 1e-5 增大到 1e-4，减少过度拟合和震荡
 FINAL_N_RESTARTS = 20    
 
 # --- 6. 数据平滑配置 ---
 BINNING_ENABLED = True     # ⭐ 启用滑动窗口平滑
-WINDOW_WIDTH = 0.4         # 窗口的宽度 (例如 0.5 度)
-STEP_SIZE = 0.2           # 滑动窗口的步长 (例如 0.25 度，重叠 50%)
+WINDOW_WIDTH = 0.3         # 窗口的宽度 (例如 0.5 度)
+STEP_SIZE = 0.15           # 滑动窗口的步长 (例如 0.25 度，重叠 50%)
 
 # --- 4. 候选核函数定义 (优化后) ---
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, Matern, WhiteKernel
