@@ -111,21 +111,38 @@ print(f"数据加载完成。总数据点: {len(y)}")
 # ==========================
 # 2. 比较异常值检测方法 + 不同 kernel
 # ==========================
-results = {}
+# ==========================
+# 2. NEW: Process data in chunks
+# ==========================
+chunk_size = 120
+num_chunks = int(np.ceil(len(y) / chunk_size))
+print(f"Data will be processed in {num_chunks} chunks of size {chunk_size}.")
 
-for method in cfg.DETECTION_METHODS:
-    X_filtered, y_filtered = remove_outliers(X, y, method=method)
+# --- Use the first configured method and find the best kernel using the first chunk ---
+best_method = cfg.DETECTION_METHODS[0]
+print(f"\n--- Using outlier detection method: '{best_method}' ---")
+print("--- Finding best kernel using the first chunk ---")
 
-    scaler_X = StandardScaler()
-    scaler_y = StandardScaler()
-    X_scaled = scaler_X.fit_transform(X_filtered)
-    y_scaled = scaler_y.fit_transform(y_filtered.reshape(-1, 1)).ravel()
+X_chunk_1 = X[:chunk_size]
+y_chunk_1 = y[:chunk_size]
 
+# Remove outliers from the first chunk
+X_filtered_1, y_filtered_1 = remove_outliers(X_chunk_1, y_chunk_1, method=best_method)
+
+best_kernel_name = None
+best_test_r2 = -np.inf
+
+# Only try to find best kernel if there's enough data after filtering
+if len(y_filtered_1) > 10: 
+    scaler_X_temp = StandardScaler()
+    scaler_y_temp = StandardScaler()
+    X_scaled = scaler_X_temp.fit_transform(X_filtered_1)
+    y_scaled = scaler_y_temp.fit_transform(y_filtered_1.reshape(-1, 1)).ravel()
+
+    # Simple train-test split for quick evaluation
     X_train, X_test, y_train, y_test = train_test_split(
-        X_scaled, y_scaled, test_size=cfg.TEST_SIZE, random_state=cfg.RANDOM_STATE
+        X_scaled, y_scaled, test_size=0.3, random_state=cfg.RANDOM_STATE
     )
-
-    method_results = []
 
     for name, kernel in cfg.KERNELS.items():
         gpr = GaussianProcessRegressor(
@@ -134,260 +151,126 @@ for method in cfg.DETECTION_METHODS:
             alpha=cfg.INITIAL_ALPHA,
             normalize_y=True
         )
-
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", ConvergenceWarning)
             try:
                 gpr.fit(X_train, y_train)
+                test_r2 = gpr.score(X_test, y_test)
+                print(f"  Kernel: {name}, Test R²: {test_r2:.3f}")
+                if test_r2 > best_test_r2:
+                    best_test_r2 = test_r2
+                    best_kernel_name = name
             except ValueError as e:
-                print(f"Warning: {method}/{name} fitting failed: {e}")
-                mean_r2 = -np.inf
-                aic = np.inf
-                method_results.append((name, aic, mean_r2))
-                continue
+                print(f"  Warning: Kernel {name} fitting failed on first chunk: {e}")
 
-            try:
-                log_likelihood = gpr.log_marginal_likelihood_value_
-            except AttributeError:
-                log_likelihood = gpr.log_marginal_likelihood(gpr.kernel_.theta)
-
-            num_params = gpr.kernel_.theta.size
-            aic = 2 * num_params - 2 * log_likelihood
-
-            scores = cross_val_score(gpr, X_scaled, y_scaled, cv=cfg.CV_FOLDS, scoring='r2')
-            mean_r2 = scores.mean()
-
-            method_results.append((name, aic, mean_r2))
-
-    results[method] = {
-        'method_results': method_results,
-        'data_points': len(y_filtered)
-    }
-
-# ==========================
-# 3. 选择最佳方法和核函数
-# ==========================
-best_method = None
-best_kernel = None
-best_aic = np.inf
-best_r2 = -np.inf
-
-print("\n--- 异常值检测方法和核函数比较 ---")
-for method, result in results.items():
-    print(f"方法: {method} (剩余数据点: {result['data_points']})")
-    for kernel_name, aic_value, r2_value in result['method_results']:
-        print(f"  核函数: {kernel_name}, AIC: {aic_value:.3f}, Mean R²: {r2_value:.3f}")
-        
-        if r2_value > best_r2:
-            best_r2 = r2_value
-            best_aic = aic_value
-            best_method = method
-            best_kernel = kernel_name
-        elif np.isclose(r2_value, best_r2) and aic_value < best_aic:
-            best_aic = aic_value
-            best_method = method
-            best_kernel = kernel_name
+# Fallback to the first kernel if no best kernel was found
+if best_kernel_name is None:
+    best_kernel_name = list(cfg.KERNELS.keys())[0]
+    print(f"Warning: Could not determine a best kernel. Falling back to default: {best_kernel_name}")
 
 print("----------------------------------------")
-print(f"\n✨ 最佳配置:")
-print(f"方法: {best_method}, 核函数: {best_kernel}")
-print(f"最佳 AIC: {best_aic:.3f}, 最佳平均 R²: {best_r2:.3f}")
-
-# ==========================
-# 4. 用最佳方法和核函数重新训练 + 评估
-# ==========================
-# 1. 使用最佳异常值处理
-X_filtered, y_filtered = remove_outliers(X, y, method=best_method)
-# 保存去除了异常值但未平滑的数据，用于最终绘图
-X_for_plot = X_filtered.copy()
-y_for_plot = y_filtered.copy()
-
-
-# --- ⭐ 2. 实现滑动窗口平滑 (新逻辑) ---
-if cfg.BINNING_ENABLED:
-    print(f"启用滑动窗口平滑。窗口宽度: {cfg.WINDOW_WIDTH}°，步长: {cfg.STEP_SIZE}°")
-    
-    X_original = X_filtered.flatten()
-    y_original = y_filtered.ravel()
-
-    # 确定起始点和结束点（使用整个数据范围）
-    start_point = X_original.min()
-    end_point = X_original.max()
-
-    X_smoothed = []
-    y_smoothed = []
-
-    # 从数据的最小角度开始，按步长移动窗口
-    current_center = start_point + cfg.WINDOW_WIDTH / 2.0
-    
-    # 增加一个小容差以确保覆盖最大值
-    while current_center <= end_point + cfg.WINDOW_WIDTH / 2.0 + 1e-6: 
-        # 定义当前窗口的上下限
-        lower_bound = current_center - cfg.WINDOW_WIDTH / 2.0
-        upper_bound = current_center + cfg.WINDOW_WIDTH / 2.0
-        
-        # 筛选出窗口内的数据点
-        window_mask = (X_original >= lower_bound) & (X_original < upper_bound)
-        y_in_window = y_original[window_mask]
-        
-        if len(y_in_window) > 0:
-            # 记录窗口的中心点（新的 X 值）
-            X_smoothed.append(current_center)
-            # 记录窗口内 Y 值的平均值（新的 Y 值）
-            y_smoothed.append(np.mean(y_in_window))
-
-        # 移动到下一个窗口中心点
-        current_center += cfg.STEP_SIZE
-        
-    X_filtered = np.array(X_smoothed).reshape(-1, 1)
-    y_filtered = np.array(y_smoothed).ravel()
-    print(f"滑动窗口平滑完成。生成数据点: {len(y_filtered)} 个。")
-
-    # --- ⭐ 2.1 在平滑后再次进行异常值检测 (新步骤) ---
-    print("在平滑数据后再次进行异常值检测...")
-    points_before = len(y_filtered)
-    # 使用 z-score 方法移除平滑后的数据中的异常值
-    X_filtered, y_filtered = remove_outliers(X_filtered, y_filtered, method='zscore')
-    points_after = len(y_filtered)
-    print(f"移除了 {points_before - points_after} 个平滑后的异常点。剩余数据点: {points_after} 个。")
-# -----------------------------------------------
-
-# 3. 标准化
-scaler_X = StandardScaler()
-scaler_y = StandardScaler()
-X_scaled = scaler_X.fit_transform(X_filtered)
-y_scaled = scaler_y.fit_transform(y_filtered.reshape(-1, 1)).ravel()
-
-X_train, X_test, y_train, y_test = train_test_split(
-    X_scaled, y_scaled, test_size=cfg.TEST_SIZE, random_state=cfg.RANDOM_STATE
-)
-
-final_kernel = cfg.KERNELS[best_kernel]
-gpr = GaussianProcessRegressor(
-    kernel=final_kernel,
-    n_restarts_optimizer=cfg.FINAL_N_RESTARTS,
-    alpha=cfg.FINAL_ALPHA, # 使用增强鲁棒性的 FINAL_ALPHA
-    normalize_y=True
-)
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore", ConvergenceWarning)
-    gpr.fit(X_train, y_train)
-
-train_r2 = r2_score(y_train, gpr.predict(X_train))
-test_r2 = r2_score(y_test, gpr.predict(X_test))
-print(f"\nFinal Train R²: {train_r2:.3f}, Test R²: {test_r2:.3f}")
-print("Optimized kernel parameters:\n", gpr.kernel_)
+print(f"✨ Best kernel from first chunk: {best_kernel_name} (Test R²: {best_test_r2:.3f})")
+print("This configuration will be used for all chunks.")
 
 
 # ==========================
-# 5. 可视化：散点 + 趋势线
+# 3. Process each chunk and plot
 # ==========================
-X_pred_original = np.linspace(cfg.PRED_ANGLE_MIN, cfg.PRED_ANGLE_MAX, cfg.PRED_POINTS).reshape(-1, 1)
-X_pred_scaled = scaler_X.transform(X_pred_original)
-
-y_pred_scaled = gpr.predict(X_pred_scaled)
-y_pred_original = scaler_y.inverse_transform(y_pred_scaled.reshape(-1, 1)).ravel()
-
 plt.figure(figsize=cfg.FIG_SIZE)
+colors = plt.cm.jet(np.linspace(0, 1, num_chunks))
 
-plt.scatter(
-    X_for_plot,
-    y_for_plot,
-    color='black',
-    alpha=0.6,
-    label='Filtered Data',
-    marker='x'
-)
+final_kernel = cfg.KERNELS[best_kernel_name]
 
-plt.plot(
-    X_pred_original.ravel(),
-    y_pred_original,
-    color='red',
-    linewidth=cfg.LINE_WIDTH_TREND,
-    label='GPR Trend'
-)
+for i in range(num_chunks):
+    print(f"\n--- Processing Chunk {i+1}/{num_chunks} ---")
+    start_index = i * chunk_size
+    end_index = start_index + chunk_size
+    X_chunk = X[start_index:end_index]
+    y_chunk = y[start_index:end_index]
 
-plt.title(f'Gaussian Process Regression (Method: {best_method}, Kernel: {best_kernel})\nTrain R²: {train_r2:.3f}, Test R²: {test_r2:.3f}', fontsize=cfg.FONT_SIZE_TITLE)
+    if len(y_chunk) == 0:
+        continue
+
+    # 1. Remove outliers within the chunk
+    X_filtered, y_filtered = remove_outliers(X_chunk, y_chunk, method=best_method)
+    print(f"Removed {len(y_chunk) - len(y_filtered)} outliers using '{best_method}' method.")
+    
+    if len(y_filtered) < 2:
+        print("Not enough data points to train GPR for this chunk.")
+        continue
+
+    # 2. Standardize data
+    scaler_X = StandardScaler()
+    scaler_y = StandardScaler()
+    X_scaled = scaler_X.fit_transform(X_filtered)
+    y_scaled = scaler_y.fit_transform(y_filtered.reshape(-1, 1)).ravel()
+
+    # 3. Train GPR model
+    gpr = GaussianProcessRegressor(
+        kernel=final_kernel,
+        n_restarts_optimizer=cfg.FINAL_N_RESTARTS,
+        alpha=cfg.FINAL_ALPHA,
+        normalize_y=True
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ConvergenceWarning)
+        gpr.fit(X_scaled, y_scaled)
+    
+    train_r2 = gpr.score(X_scaled, y_scaled)
+    print(f"Train R² for chunk {i+1}: {train_r2:.3f}")
+
+    # 4. Generate predictions for trend line
+    chunk_angle_min = X_filtered.min()
+    chunk_angle_max = X_filtered.max()
+    X_pred_original = np.linspace(chunk_angle_min, chunk_angle_max, 200).reshape(-1, 1) # Use 200 points for trend
+    X_pred_scaled = scaler_X.transform(X_pred_original)
+    
+    y_pred_scaled = gpr.predict(X_pred_scaled)
+    y_pred_original = scaler_y.inverse_transform(y_pred_scaled.reshape(-1, 1)).ravel()
+
+    # 5. Plotting
+    # Plot filtered data for the chunk
+    plt.scatter(
+        X_filtered,
+        y_filtered,
+        color='grey', # Keep scatter points neutral
+        alpha=0.4,
+        marker='x'
+    )
+    # Plot GPR trend for the chunk
+    plt.plot(
+        X_pred_original.ravel(),
+        y_pred_original,
+        color=colors[i],
+        linewidth=cfg.LINE_WIDTH_TREND,
+        label=f'Chunk {i+1} Trend'
+    )
+
+# Add a placeholder scatter for the legend
+plt.scatter([], [], color='grey', alpha=0.4, marker='x', label='Filtered Data')
+
+# --- Final plot configuration ---
+plt.title(f'GPR Analysis by Chunks (Method: {best_method}, Kernel: {best_kernel_name})', fontsize=cfg.FONT_SIZE_TITLE)
 plt.xlabel(cfg.X_LABEL_GPR, fontsize=cfg.FONT_SIZE_LABEL)
 plt.ylabel(cfg.Y_LABEL_GPR, fontsize=cfg.FONT_SIZE_LABEL)
 
-
-# --- 轴限制控制 (图 5) ---
+# --- Axis limits control ---
 if not cfg.AUTO_X_LIMITS_GPR and cfg.X_LIM_GPR is not None:
     plt.xlim(cfg.X_LIM_GPR[0], cfg.X_LIM_GPR[1])
+else:
+    # Auto-adjust x-axis to fit all data if not manually set
+    plt.xlim(X.min(), X.max())
 
 if not cfg.AUTO_Y_LIMITS_GPR and cfg.Y_LIM_GPR is not None:
     plt.ylim(cfg.Y_LIM_GPR[0], cfg.Y_LIM_GPR[1])
-# ------------------------
 
-plt.legend(fontsize=cfg.FONT_SIZE_LEGEND, loc='lower right')
+plt.legend(fontsize=cfg.FONT_SIZE_LEGEND, loc='best')
 plt.tight_layout()
 
-# --- 自动保存 ---
-save_plot("Figure_5_GPR_Trend")
-plt.show() # 显示图像
-
-# ==========================
-# 6. 真值 vs 预测值（训练集）
-# ==========================
-y_train_pred = gpr.predict(X_train)
-y_train_true_original = scaler_y.inverse_transform(y_train.reshape(-1, 1)).ravel()
-y_train_pred_original = scaler_y.inverse_transform(y_train_pred.reshape(-1, 1)).ravel()
-
-plt.figure(figsize=cfg.FIG_SIZE_SCATTER)
-plt.scatter(
-    y_train_true_original,
-    y_train_pred_original,
-    alpha=0.7,
-    marker='x',
-    label="Training Data"
-)
-y_min = y_train_true_original.min()
-y_max = y_train_true_original.max()
-
-# --- 轴限制控制 (图 6) ---
-if cfg.TRUE_VS_PRED_LIMITS is not None:
-    limit_min, limit_max = cfg.TRUE_VS_PRED_LIMITS
-    plt.xlim(limit_min, limit_max)
-    plt.ylim(limit_min, limit_max)
-    # y=x 线也使用手动限制
-    plt.plot([limit_min, limit_max], [limit_min, limit_max], ls="--", color="red", label="y = x")
-else:
-    # 自动适应
-    plt.plot([y_min, y_max], [y_min, y_max], ls="--", color="red", label="y = x")
-# ------------------------
-
-plt.xlabel("True Values (eV)", fontsize=cfg.FONT_SIZE_LABEL)
-plt.ylabel("Predicted Values (eV)", fontsize=cfg.FONT_SIZE_LABEL)
-plt.title(f"True vs Predicted Values (Training, R²: {train_r2:.3f})", fontsize=cfg.FONT_SIZE_TITLE)
-plt.legend(fontsize=cfg.FONT_SIZE_LEGEND)
-plt.tight_layout()
-
-save_plot("Figure_6_True_vs_Predicted")
+# --- Auto save ---
+save_plot("Figure_5_GPR_Trend_Chunked")
 plt.show()
 
-# ==========================
-# 7. 残差分布
-# ==========================
-y_train_pred = gpr.predict(X_train)
-y_test_pred = gpr.predict(X_test)
-residuals_train = y_train - y_train_pred
-residuals_test = y_test - y_test_pred
+# NOTE: The True vs. Predicted and Residual plots are omitted as they are less meaningful
+# in a chunked analysis where models are retrained for each chunk.
 
-plt.figure(figsize=cfg.FIG_SIZE_HIST)
-plt.hist(residuals_train, bins=cfg.HIST_BINS, alpha=0.6, label='Train Residuals')
-plt.hist(residuals_test, bins=cfg.HIST_BINS, alpha=0.6, label='Test Residuals')
-plt.axvline(0, color='red', linestyle='dashed', linewidth=2)
-
-# --- X 轴限制控制 (图 7) ---
-if cfg.RESIDUAL_X_LIMITS is not None:
-    plt.xlim(cfg.RESIDUAL_X_LIMITS[0], cfg.RESIDUAL_X_LIMITS[1])
-# ------------------------
-
-plt.title('Residuals Distribution (Scaled)', fontsize=cfg.FONT_SIZE_TITLE)
-plt.xlabel('Residuals (Scaled)', fontsize=cfg.FONT_SIZE_LABEL)
-plt.ylabel('Frequency', fontsize=cfg.FONT_SIZE_LABEL)
-plt.legend(fontsize=cfg.FONT_SIZE_LEGEND)
-plt.tight_layout()
-save_plot("Figure_7_Residuals_Distribution")
-plt.show()

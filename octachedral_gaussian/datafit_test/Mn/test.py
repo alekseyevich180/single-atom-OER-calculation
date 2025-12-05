@@ -108,6 +108,17 @@ X = data[:, cfg.FEATURE_COL].reshape(-1, 1)
 y = data[:, cfg.TARGET_COL] * cfg.TARGET_SIGN
 print(f"数据加载完成。总数据点: {len(y)}")
 
+# --- ⭐ 新增: 根据角度范围 (130-180) 选取数据 ---
+if cfg.ANGLE_FILTER_ENABLED:
+    angle_min, angle_max = cfg.ANGLE_MIN, cfg.ANGLE_MAX
+    angle_mask = ((X >= angle_min) & (X <= angle_max)).flatten()
+    
+
+X = X[angle_mask].reshape(-1, 1)
+y = y[angle_mask]
+print(f"数据筛选完成 ({angle_min}°-{angle_max}°): 剩余 {len(y)} 个数据点。")
+# --- 结束新增 ---
+
 # ==========================
 # 2. 比较异常值检测方法 + 不同 kernel
 # ==========================

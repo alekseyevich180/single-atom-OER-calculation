@@ -34,8 +34,8 @@ FINAL_N_RESTARTS = 20
 
 # --- 6. 数据平滑配置 ---
 BINNING_ENABLED = True     # ⭐ 启用滑动窗口平滑
-WINDOW_WIDTH = 0.5         # 窗口的宽度 (例如 0.5 度)
-STEP_SIZE = 0.25           # 滑动窗口的步长 (例如 0.25 度，重叠 50%)
+WINDOW_WIDTH = 1         # 窗口的宽度 (例如 0.5 度)
+STEP_SIZE = 0.5           # 滑动窗口的步长 (例如 0.25 度，重叠 50%)
 
 # --- 4. 候选核函数定义 (优化后) ---
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, Matern, WhiteKernel
