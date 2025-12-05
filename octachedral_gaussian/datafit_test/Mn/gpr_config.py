@@ -71,6 +71,10 @@ PRED_POINTS = 1000       # 趋势线上的点数
 X_LABEL_GPR = 'O-Mn-O angle (°)'
 Y_LABEL_GPR = '-IpCOHP (eV)'
 
+# --- 图 5 散点样式配置 ---
+# 可选值: 'hollow_circle' (空心圆), 'x' (叉号)
+SCATTER_MARKER_STYLE = 'hollow_circle'
+
 # --- 图 5 轴限制配置 ---
 # AUTO_... = True: 自动适应数据范围 (忽略 X/Y_LIM_GPR)
 # AUTO_... = False: 使用手动设置 X/Y_LIM_GPR
