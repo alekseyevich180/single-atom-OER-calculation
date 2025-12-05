@@ -198,6 +198,10 @@ print(f"最佳 AIC: {best_aic:.3f}, 最佳平均 R²: {best_r2:.3f}")
 # ==========================
 # 1. 使用最佳异常值处理
 X_filtered, y_filtered = remove_outliers(X, y, method=best_method)
+# 保存去除了异常值但未平滑的数据，用于最终绘图
+X_for_plot = X_filtered.copy()
+y_for_plot = y_filtered.copy()
+
 
 # --- ⭐ 2. 实现滑动窗口平滑 (新逻辑) ---
 if cfg.BINNING_ENABLED:
@@ -238,6 +242,14 @@ if cfg.BINNING_ENABLED:
     X_filtered = np.array(X_smoothed).reshape(-1, 1)
     y_filtered = np.array(y_smoothed).ravel()
     print(f"滑动窗口平滑完成。生成数据点: {len(y_filtered)} 个。")
+
+    # --- ⭐ 2.1 在平滑后再次进行异常值检测 (新步骤) ---
+    print("在平滑数据后再次进行异常值检测...")
+    points_before = len(y_filtered)
+    # 使用 z-score 方法移除平滑后的数据中的异常值
+    X_filtered, y_filtered = remove_outliers(X_filtered, y_filtered, method='zscore')
+    points_after = len(y_filtered)
+    print(f"移除了 {points_before - points_after} 个平滑后的异常点。剩余数据点: {points_after} 个。")
 # -----------------------------------------------
 
 # 3. 标准化
@@ -279,8 +291,8 @@ y_pred_original = scaler_y.inverse_transform(y_pred_scaled.reshape(-1, 1)).ravel
 plt.figure(figsize=cfg.FIG_SIZE)
 
 plt.scatter(
-    scaler_X.inverse_transform(X_scaled),
-    scaler_y.inverse_transform(y_scaled.reshape(-1, 1)),
+    X_for_plot,
+    y_for_plot,
     color='black',
     alpha=0.6,
     label='Filtered Data',
@@ -379,4 +391,3 @@ plt.legend(fontsize=cfg.FONT_SIZE_LEGEND)
 plt.tight_layout()
 save_plot("Figure_7_Residuals_Distribution")
 plt.show()
-

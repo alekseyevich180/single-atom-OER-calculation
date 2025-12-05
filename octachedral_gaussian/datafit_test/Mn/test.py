@@ -198,6 +198,10 @@ print(f"最佳 AIC: {best_aic:.3f}, 最佳平均 R²: {best_r2:.3f}")
 # ==========================
 # 1. 使用最佳异常值处理
 X_filtered, y_filtered = remove_outliers(X, y, method=best_method)
+# 保存去除了异常值但未平滑的数据，用于最终绘图
+X_for_plot = X_filtered.copy()
+y_for_plot = y_filtered.copy()
+
 
 # --- ⭐ 2. 实现滑动窗口平滑 (新逻辑) ---
 if cfg.BINNING_ENABLED:
@@ -287,8 +291,8 @@ y_pred_original = scaler_y.inverse_transform(y_pred_scaled.reshape(-1, 1)).ravel
 plt.figure(figsize=cfg.FIG_SIZE)
 
 plt.scatter(
-    scaler_X.inverse_transform(X_scaled),
-    scaler_y.inverse_transform(y_scaled.reshape(-1, 1)),
+    X_for_plot,
+    y_for_plot,
     color='black',
     alpha=0.6,
     label='Filtered Data',
