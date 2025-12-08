@@ -22,7 +22,7 @@ MAD_THRESHOLD = 3.0    # ⭐ 提高到 3.0，增强基于中位数的稳健性
 # --- 2.1. 异常值排除（手动） ---
 ANGLE_FILTER_ENABLED = True # 是否启用角度筛选
 ANGLE_MIN = 130             # 筛选的最小角度
-ANGLE_MAX = 180  
+ANGLE_MAX = 180    
 
 # --- 3. GPR 模型和训练参数 (优化后) ---
 TEST_SIZE = 0.2
@@ -70,13 +70,15 @@ FONT_SIZE_LEGEND = 12
 LINE_WIDTH_TREND = 2
 
 # GPR 趋势线图 (图 5)
-PRED_ANGLE_MIN = 131.5   # 趋势线预测的最小角度 (用于生成趋势线数据)
+PRED_ANGLE_MIN = 130.0   # 趋势线预测的最小角度 (用于生成趋势线数据)
 PRED_ANGLE_MAX = 180.0   # 趋势线预测的最大角度 (用于生成趋势线数据)
 PRED_POINTS = 1000       # 趋势线上的点数
 X_LABEL_GPR = 'O-Ru-O angle (°)'
 Y_LABEL_GPR = '-IpCOHP (eV)'
 
-
+# --- 图 5 散点样式配置 ---
+# 可选值: 'hollow_circle' (空心圆), 'x' (叉号)
+SCATTER_MARKER_STYLE = 'hollow_circle'
 
 # --- 图 5 轴限制配置 ---
 # AUTO_... = True: 自动适应数据范围 (忽略 X/Y_LIM_GPR)
@@ -85,7 +87,7 @@ AUTO_X_LIMITS_GPR = False
 AUTO_Y_LIMITS_GPR = True 
 
 # 手动设置的轴限制 (仅在 AUTO_... 为 False 时有效，格式为 (min, max))
-X_LIM_GPR = (131.5, 181.0)
+X_LIM_GPR = (130.0, 181.0)
 Y_LIM_GPR = (1.0, 2.0)
 
 
