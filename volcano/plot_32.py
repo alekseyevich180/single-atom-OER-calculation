@@ -1,151 +1,117 @@
-import pandas as pd
+import os
+from pathlib import Path
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from plot_config import CONFIG
 
-def filter_and_plot_data(file_path):
+
+def load_with_dynamic_columns(file_path):
+    # Build column names to capture extra fields beyond the header.
+    with open(file_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+    header_fields = lines[0].split()
+    max_len = max(len(line.split()) for line in lines)
+    column_names = header_fields + [f'extra_{i}' for i in range(len(header_fields), max_len)]
+
+    df = pd.read_csv(
+        file_path,
+        sep=r'\s+',
+        header=0,
+        names=column_names,
+        engine='python',
+        skiprows=[1],
+    )
+    return df
+
+
+def plot_three_lines(file_path, output_dir=None):
     """
-    Reads data from the specified file, filters it, and creates a volcano plot.
-    
-    - Filters for rows where the value in column 13 (index 12) is between 2.0 and 4.0.
-    - Plots column 19 vs. column 22 (1-based indices) if those columns exist.
+    Reads data, filters, and plots scatter + two fitted lines (with R²) on one chart.
+    - x axis: column 7 (1-based) -> index 6
+    - y axes: columns 8, 9 (1-based) -> indices 7, 8
+    - Lines: fit y8 vs x and y9 vs x; report R² for each.
     """
-    try:
-        # Build column names to keep extra columns that appear after the header.
-        with open(file_path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-        header_fields = lines[0].split()
-        max_len = max(len(line.split()) for line in lines)
-        column_names = header_fields + [f'extra_{i}' for i in range(len(header_fields), max_len)]
+    df = load_with_dynamic_columns(file_path)
 
-        # Use read_csv with whitespace delimiter and treat the first row as a header.
-        # Skip the first data row (index 1) because subsequent rows have no header.
-        df = pd.read_csv(
-            file_path,
-            sep=r'\s+',
-            header=0,
-            names=column_names,
-            engine='python',
-            skiprows=[1]
-        )
+    # Filter by 13th column (index 12) between 2.0 and 4.0
+    filter_col_idx = 12
+    if filter_col_idx >= len(df.columns):
+        print(f"Not enough columns in {file_path} for filtering. Found {len(df.columns)} columns.")
+        return
+    filter_col = df.columns[filter_col_idx]
+    df[filter_col] = pd.to_numeric(df[filter_col], errors='coerce')
+    df = df[(df[filter_col] >= 2.0) & (df[filter_col] <= 4.0)].copy()
+    if df.empty:
+        print("No data remained after filtering; nothing to plot.")
+        return
 
-        # --- 1. Filtering Step ---
-        # Get the name of the 13th column (index 12) for filtering
-        filter_column_name = df.columns[12]
-        
-        # Convert the filter column to a numeric type, coercing errors to NaN
-        df[filter_column_name] = pd.to_numeric(df[filter_column_name], errors='coerce')
-        
-        # Apply the filter condition
-        filtered_df = df[
-            (df[filter_column_name] >= 2.0) & (df[filter_column_name] <= 4.0)
-        ].copy()
-        
-        print(f"Successfully loaded data from {file_path}.")
-        print(f"Original rows: {len(df)}, Rows after filtering: {len(filtered_df)}")
+    x_col_idx, y1_idx, y2_idx = 6, 7, 8
+    if max(x_col_idx, y1_idx, y2_idx) >= len(df.columns):
+        print(f"Not enough columns in {file_path}. Found {len(df.columns)} columns.")
+        return
 
-        if filtered_df.empty:
-            col_stats = pd.to_numeric(df[filter_column_name], errors='coerce')
-            print(f"No data remains after filtering. Column '{filter_column_name}' range: "
-                  f"min={col_stats.min()}, max={col_stats.max()}")
-            return
+    x_col = df.columns[x_col_idx]
+    y1_col = df.columns[y1_idx]
+    y2_col = df.columns[y2_idx]
 
-        # Deduplicate elements: prefer plain names (no suffix) except Sn -> Sn_d, Ru -> Ru_pv.
-        def dedupe_by_element(df_in):
-            if df_in.empty:
-                return df_in
-            preferred_special = {'Sn': 'Sn_d', 'Ru': 'Ru_pv'}
-            deduped_rows = []
-            base_names = df_in['element'].apply(lambda x: str(x).split('_')[0]).unique()
-            for base in base_names:
-                subset = df_in[df_in['element'].str.startswith(base)]
-                preferred_name = preferred_special.get(base, base)
-                if preferred_name in subset['element'].values:
-                    chosen = subset[subset['element'] == preferred_name].iloc[0]
-                else:
-                    chosen = subset.iloc[0]
-                deduped_rows.append(chosen)
-            return pd.DataFrame(deduped_rows)
+    df[x_col] = pd.to_numeric(df[x_col], errors='coerce')
+    df[y1_col] = pd.to_numeric(df[y1_col], errors='coerce')
+    df[y2_col] = pd.to_numeric(df[y2_col], errors='coerce')
 
-        filtered_df = dedupe_by_element(filtered_df)
+    df.dropna(subset=[x_col, y1_col, y2_col], inplace=True)
+    if df.empty:
+        print("No valid data to plot after cleaning.")
+        return
 
-        # --- 2. Plotting Step ---
-        # Define column indices for plotting (0-based). 1-based indices: 19 and 22.
-        x_col_index = 16
-        y_col_index = 20
+    x = df[x_col]
+    y1 = df[y1_col]
+    y2 = df[y2_col]
 
-        if x_col_index >= len(filtered_df.columns) or y_col_index >= len(filtered_df.columns):
-            print(f"Error: Requested plot columns (19, 22) exceed available columns ({len(filtered_df.columns)}).")
-            print("Available columns (0-based):")
-            for i, col in enumerate(filtered_df.columns):
-                print(f"  {i}: {col}")
-            return
+    # Fit lines and compute R²
+    def fit_line_and_r2(x_vals, y_vals):
+        m, b = np.polyfit(x_vals, y_vals, 1)
+        y_pred = m * x_vals + b
+        ss_res = np.sum((y_vals - y_pred) ** 2)
+        ss_tot = np.sum((y_vals - np.mean(y_vals)) ** 2)
+        r2 = 1 - ss_res / ss_tot if ss_tot != 0 else float('nan')
+        return m, b, r2
 
-        # Get column names
-        x_col_name = filtered_df.columns[x_col_index]
-        y_col_name = filtered_df.columns[y_col_index]
-        
-        # Convert plotting columns to numeric, coercing errors
-        filtered_df[x_col_name] = pd.to_numeric(filtered_df[x_col_name], errors='coerce')
-        filtered_df[y_col_name] = pd.to_numeric(filtered_df[y_col_name], errors='coerce')
+    m1, b1, r2_1 = fit_line_and_r2(x, y1)
+    m2, b2, r2_2 = fit_line_and_r2(x, y2)
 
-        # Drop any rows that have non-numeric values in the columns we want to plot
-        filtered_df.dropna(subset=[x_col_name, y_col_name], inplace=True)
+    x_min, x_max = x.min(), x.max()
+    x_range = np.linspace(x_min, x_max, 100)
 
-        if filtered_df.empty:
-            print("No valid data for plotting after cleaning non-numeric values.")
-            return
+    cfg = CONFIG.get("plot32", {})
+    colors = cfg.get("colors", {"y1": "tab:orange", "y2": "tab:purple"})
 
-        print(f"Plotting '{y_col_name}' vs. '{x_col_name}'.")
+    plt.figure(figsize=cfg.get("figsize", (10, 7)))
+    scatter_alpha = cfg.get("scatter_alpha", 0.7)
+    plt.scatter(x, y1, alpha=scatter_alpha, color=colors["y1"], label=f'{y1_col} data')
+    plt.scatter(x, y2, alpha=scatter_alpha, marker='^', color=colors["y2"], label=f'{y2_col} data')
 
-        # Create the plot
-        plt.figure(figsize=(10, 7))
-        plt.scatter(filtered_df[x_col_name], filtered_df[y_col_name], alpha=0.7)
+    line_style = cfg.get("line_style", "--")
+    plt.plot(x_range, m1 * x_range + b1, color=colors["y1"], linestyle=line_style,
+             label=f'{y1_col} fit: y={m1:.3f}x+{b1:.3f}, R²={r2_1:.3f}')
+    plt.plot(x_range, m2 * x_range + b2, color=colors["y2"], linestyle=line_style,
+             label=f'{y2_col} fit: y={m2:.3f}x+{b2:.3f}, R²={r2_2:.3f}')
 
-        # Annotate by base element name (strip suffixes like _pv, _sv) with minimal overlap.
-        # Place one label per base element at the mean coordinate of its points,
-        # then stagger labels if they land on the same spot.
-        grouped = filtered_df.assign(_base=filtered_df['element'].astype(str).str.split('_').str[0])
-        label_positions = grouped.groupby('_base')[[x_col_name, y_col_name]].mean().reset_index()
+    plt.xlabel(f'Column 7: {x_col} (eV)')
+    plt.ylabel(cfg.get("ylabel", "Energy (eV)"))
+    plt.title(cfg.get("title", "Scatter with Two Fitted Lines"))
+    grid_cfg = cfg.get("grid", {"linestyle": "--", "linewidth": 0.5, "which": "both"})
+    plt.grid(True, **grid_cfg)
+    plt.legend()
 
-        # Default: no offset. For specific crowded labels, apply small manual offsets.
-        label_offsets = {
-            'Ir': (10, 6),
-            'Cr': (-10, 6),
-            'Mn': (10, -6),
-            'Pb': (-10, -6),
-        }
-        for _, row in label_positions.iterrows():
-            label = row['_base']
-            x_val, y_val = row[x_col_name], row[y_col_name]
-            dx, dy = label_offsets.get(label, (0, 0))
-            plt.annotate(
-                label,
-                (x_val, y_val),
-                textcoords="offset points",
-                xytext=(dx, dy),
-                fontsize=8
-            )
-        
-        # Add labels and title
-        plt.xlabel(f"Descriptor: {x_col_name} (eV)")
-        plt.ylabel(f"Activity: {y_col_name} (eV)")
-        plt.title("Volcano Plot")
-        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-        
-        # Save the figure
-        output_filename = 'volcano_plot.png'
-        plt.savefig(output_filename)
-        
-        print(f"\nPlot successfully generated and saved as '{output_filename}' in the same directory.")
+    target_dir = Path(output_dir) if output_dir else Path(".")
+    os.makedirs(target_dir, exist_ok=True)
+    out_path = target_dir / "plot_32.png"
+    plt.savefig(out_path)
+    print(f"Saved plot to {out_path}")
 
-    except FileNotFoundError:
-        print(f"Error: File not found at {file_path}")
-    except IndexError:
-        print("Error: The file does not have enough columns. Please check the column indices.")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
 
-if __name__ == '__main__':
-    # Path to the data file
+if __name__ == "__main__":
     DATA_FILE = 'c:\\Users\\yingkaiwu\\Desktop\\single-atom\\volcano\\pbe-d3.dat'
-    
-    filter_and_plot_data(DATA_FILE)
+    plot_three_lines(DATA_FILE)

@@ -1,0 +1,35 @@
+CONFIG = {
+    "volcano": {
+        "figsize": (10, 7),
+        "scatter_alpha": 0.7,
+        "scatter_color": "tab:blue",
+        "trend_left_color": "orange",
+        "trend_right_color": "purple",
+        "split_line_color": "gray",
+        "grid": {"linestyle": "--", "linewidth": 0.5, "which": "both"},
+        "xlim": (0, 3),
+        "ylim": (-2, -0.5),
+        "annotation_fontsize": 8,
+        "label_offsets": {
+            "Ir": (10, 6),
+            "Cr": (-10, 6),
+            "Mn": (10, -6),
+            "Pb": (-10, -6),
+        },
+        "title": "Volcano Plot",
+        "xlabel_prefix": "Descriptor",
+        "ylabel": "Activity (eV)",
+    },
+    "plot32": {
+        "figsize": (10, 7),
+        "scatter_alpha": 0.7,
+        "colors": {
+            "y1": "tab:orange",
+            "y2": "tab:purple",
+        },
+        "line_style": "--",
+        "grid": {"linestyle": "--", "linewidth": 0.5, "which": "both"},
+        "title": "Scatter with Two Fitted Lines",
+        "ylabel": "Energy (eV)",
+    },
+}

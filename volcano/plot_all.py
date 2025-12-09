@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from plot_volcano import filter_and_plot_data
+from plot_32 import plot_three_lines
 
 
 def main():
@@ -14,6 +15,7 @@ def main():
         out_dir = data_dir / dat_path.stem
         print(f"\nProcessing {dat_path.name} -> {out_dir}")
         filter_and_plot_data(str(dat_path), output_dir=out_dir)
+        plot_three_lines(str(dat_path), output_dir=out_dir)
 
 
 if __name__ == "__main__":
