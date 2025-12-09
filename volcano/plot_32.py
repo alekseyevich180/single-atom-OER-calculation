@@ -1,11 +1,7 @@
-import os
-from pathlib import Path
-
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
-def filter_and_plot_data(file_path, output_dir=None):
+def filter_and_plot_data(file_path):
     """
     Reads data from the specified file, filters it, and creates a volcano plot.
     
@@ -104,40 +100,6 @@ def filter_and_plot_data(file_path, output_dir=None):
         plt.figure(figsize=(10, 7))
         plt.scatter(filtered_df[x_col_name], filtered_df[y_col_name], alpha=0.7)
 
-        # Trend lines on each side of split_x
-        split_x = 2.0
-        left_df = filtered_df[filtered_df[x_col_name] < split_x]
-        right_df = filtered_df[filtered_df[x_col_name] >= split_x]
-
-        # Fit each side separately, then anchor both lines to intersect at a common point on x=split_x.
-        def fit_line(subset):
-            if len(subset) < 2:
-                return None
-            x_vals = subset[x_col_name]
-            y_vals = subset[y_col_name]
-            m, b = np.polyfit(x_vals, y_vals, 1)
-            return m, b
-
-        left_fit = fit_line(left_df)
-        right_fit = fit_line(right_df)
-
-        if left_fit and right_fit:
-            m_l, b_l = left_fit
-            m_r, b_r = right_fit
-            # Intersection y chosen as the midpoint of the two unconstrained predictions at split_x.
-            y_split = (m_l * split_x + b_l + m_r * split_x + b_r) / 2
-            b_l_adj = y_split - m_l * split_x
-            b_r_adj = y_split - m_r * split_x
-
-            x_left_range = np.linspace(left_df[x_col_name].min(), split_x, 50)
-            x_right_range = np.linspace(split_x, right_df[x_col_name].max(), 50)
-
-            plt.plot(x_left_range, m_l * x_left_range + b_l_adj, color='orange', linestyle='--', linewidth=1.3, label=f'{x_col_name} < {split_x} trend')
-            plt.plot(x_right_range, m_r * x_right_range + b_r_adj, color='purple', linestyle='--', linewidth=1.3, label=f'{x_col_name} ≥ {split_x} trend')
-            plt.scatter([split_x], [y_split], color='gray', s=12, zorder=5)
-
-        plt.axvline(split_x, color='gray', linestyle=':', linewidth=1)
-
         # Annotate by base element name (strip suffixes like _pv, _sv) with minimal overlap.
         # Place one label per base element at the mean coordinate of its points,
         # then stagger labels if they land on the same spot.
@@ -168,16 +130,12 @@ def filter_and_plot_data(file_path, output_dir=None):
         plt.ylabel(f"Activity: {y_col_name} (eV)")
         plt.title("Volcano Plot")
         plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-        plt.xlim(0, 3)
-        plt.ylim(-2, -0.5)
         
         # Save the figure
-        target_dir = Path(output_dir) if output_dir else Path(".")
-        os.makedirs(target_dir, exist_ok=True)
-        output_filename = target_dir / 'volcano_plot.png'
+        output_filename = 'volcano_plot.png'
         plt.savefig(output_filename)
         
-        print(f"\nPlot successfully generated and saved as '{output_filename}'.")
+        print(f"\nPlot successfully generated and saved as '{output_filename}' in the same directory.")
 
     except FileNotFoundError:
         print(f"Error: File not found at {file_path}")
