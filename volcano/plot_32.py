@@ -86,23 +86,36 @@ def plot_three_lines(file_path, output_dir=None):
 
     cfg = CONFIG.get("plot32", {})
     colors = cfg.get("colors", {"y1": "tab:orange", "y2": "tab:purple"})
+    markers = cfg.get("markers", {"y1": "o", "y2": "^"})
 
     plt.figure(figsize=cfg.get("figsize", (10, 7)))
     scatter_alpha = cfg.get("scatter_alpha", 0.7)
-    plt.scatter(x, y1, alpha=scatter_alpha, color=colors["y1"], label=f'{y1_col} data')
-    plt.scatter(x, y2, alpha=scatter_alpha, marker='^', color=colors["y2"], label=f'{y2_col} data')
+    scatter_size = cfg.get("scatter_size", 30)
+    plt.scatter(x, y1, alpha=scatter_alpha, s=scatter_size, marker=markers.get("y1", "o"), color=colors["y1"], label=f'{y1_col} data')
+    plt.scatter(x, y2, alpha=scatter_alpha, s=scatter_size, marker=markers.get("y2", "^"), color=colors["y2"], label=f'{y2_col} data')
 
     line_style = cfg.get("line_style", "--")
-    plt.plot(x_range, m1 * x_range + b1, color=colors["y1"], linestyle=line_style,
+    line_width = cfg.get("line_width", 1.3)
+    plt.plot(x_range, m1 * x_range + b1, color=colors["y1"], linestyle=line_style, linewidth=line_width,
              label=f'{y1_col} fit: y={m1:.3f}x+{b1:.3f}, R²={r2_1:.3f}')
-    plt.plot(x_range, m2 * x_range + b2, color=colors["y2"], linestyle=line_style,
+    plt.plot(x_range, m2 * x_range + b2, color=colors["y2"], linestyle=line_style, linewidth=line_width,
              label=f'{y2_col} fit: y={m2:.3f}x+{b2:.3f}, R²={r2_2:.3f}')
 
-    plt.xlabel(f'Column 7: {x_col} (eV)')
-    plt.ylabel(cfg.get("ylabel", "Energy (eV)"))
-    plt.title(cfg.get("title", "Scatter with Two Fitted Lines"))
+    label_fs = cfg.get("axes_label_fontsize", None)
+    title_fs = cfg.get("title_fontsize", None)
+    legend_fs = cfg.get("legend_fontsize", None)
+    plt.xlabel(f'Column 7: {x_col} (eV)', fontsize=label_fs)
+    plt.ylabel(cfg.get("ylabel", "Energy (eV)"), fontsize=label_fs)
+    plt.title(cfg.get("title", "Scatter with Two Fitted Lines"), fontsize=title_fs)
     grid_cfg = cfg.get("grid", {"linestyle": "--", "linewidth": 0.5, "which": "both"})
     plt.grid(True, **grid_cfg)
+    if legend_fs:
+        leg = plt.legend()
+        if leg:
+            for text in leg.get_texts():
+                text.set_fontsize(legend_fs)
+    else:
+        plt.legend()
     plt.legend()
 
     target_dir = Path(output_dir) if output_dir else Path(".")

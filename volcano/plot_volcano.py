@@ -116,7 +116,7 @@ def filter_and_plot_data(file_path, output_dir=None):
         left_fit = fit_line(left_df)
         right_fit = fit_line(right_df)
 
-        x_axis_min, x_axis_max = 0.0, 3.0
+        x_axis_min, x_axis_max = cfg.get("x_axis_limits", (0.0, 3.0))
 
         cfg = CONFIG.get("volcano", {})
         plt.figure(figsize=cfg.get("figsize", (10, 7)))
@@ -125,6 +125,8 @@ def filter_and_plot_data(file_path, output_dir=None):
             filtered_df[y_col_name],
             alpha=cfg.get("scatter_alpha", 0.7),
             color=cfg.get("scatter_color", "tab:blue"),
+            marker=cfg.get("scatter_marker", "o"),
+            s=cfg.get("scatter_size", 30),
         )
 
         if left_fit and right_fit and not left_df.empty and not right_df.empty:
@@ -135,27 +137,41 @@ def filter_and_plot_data(file_path, output_dir=None):
                 x_int = max(x_axis_min, min(x_axis_max, x_int))
                 y_int = m_l * x_int + b_l
 
-                x_left_range = np.linspace(x_axis_min, x_int, 50)
-                x_right_range = np.linspace(x_int, x_axis_max, 50)
+                samples = cfg.get("trend_samples", 50)
+                x_left_range = np.linspace(x_axis_min, x_int, samples)
+                x_right_range = np.linspace(x_int, x_axis_max, samples)
 
+                line_style = cfg.get("trend_line_style", "--")
+                line_width = cfg.get("trend_line_width", 1.3)
                 plt.plot(
                     x_left_range,
                     m_l * x_left_range + b_l,
                     color=cfg.get("trend_left_color", "orange"),
-                    linestyle="--",
-                    linewidth=1.3,
+                    linestyle=line_style,
+                    linewidth=line_width,
                     label=f'{x_col_name} < {x_int:.2f} trend',
                 )
                 plt.plot(
                     x_right_range,
                     m_r * x_right_range + b_r,
                     color=cfg.get("trend_right_color", "purple"),
-                    linestyle="--",
-                    linewidth=1.3,
+                    linestyle=line_style,
+                    linewidth=line_width,
                     label=f'{x_col_name} >= {x_int:.2f} trend',
                 )
-                plt.scatter([x_int], [y_int], color=cfg.get("split_line_color", "gray"), s=12, zorder=5)
-                plt.axvline(x_int, color=cfg.get("split_line_color", "gray"), linestyle=":", linewidth=1)
+                plt.scatter(
+                    [x_int],
+                    [y_int],
+                    color=cfg.get("split_line_color", "gray"),
+                    s=cfg.get("split_marker_size", 12),
+                    zorder=5,
+                )
+                plt.axvline(
+                    x_int,
+                    color=cfg.get("split_line_color", "gray"),
+                    linestyle=cfg.get("split_line_style", ":"),
+                    linewidth=cfg.get("split_line_width", 1),
+                )
 
         # --- Labels with slight manual offsets for crowded ones ---
         grouped = filtered_df.assign(_base=filtered_df['element'].astype(str).str.split('_').str[0])
@@ -175,15 +191,23 @@ def filter_and_plot_data(file_path, output_dir=None):
                 fontsize=annot_fs
             )
 
-        plt.xlabel(f"{cfg.get('xlabel_prefix', 'Descriptor')}: {x_col_name} (eV)")
-        plt.ylabel(cfg.get("ylabel", f"Activity: {y_col_name} (eV)"))
-        plt.title(cfg.get("title", "Volcano Plot"))
+        label_fs = cfg.get("axes_label_fontsize", None)
+        title_fs = cfg.get("title_fontsize", None)
+        legend_fs = cfg.get("legend_fontsize", None)
+        plt.xlabel(f"{cfg.get('xlabel_prefix', 'Descriptor')}: {x_col_name} (eV)", fontsize=label_fs)
+        plt.ylabel(cfg.get("ylabel", f"Activity: {y_col_name} (eV)"), fontsize=label_fs)
+        plt.title(cfg.get("title", "Volcano Plot"), fontsize=title_fs)
         grid_cfg = cfg.get("grid", {"linestyle": "--", "linewidth": 0.5, "which": "both"})
         plt.grid(True, **grid_cfg)
         if "xlim" in cfg:
             plt.xlim(*cfg["xlim"])
         if "ylim" in cfg:
             plt.ylim(*cfg["ylim"])
+        if legend_fs:
+            leg = plt.legend()
+            if leg:
+                for text in leg.get_texts():
+                    text.set_fontsize(legend_fs)
 
         target_dir = Path(output_dir) if output_dir else Path(".")
         os.makedirs(target_dir, exist_ok=True)
