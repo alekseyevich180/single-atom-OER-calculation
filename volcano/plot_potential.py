@@ -15,226 +15,154 @@ DEFAULT_ALLOWED_LABELS = [
 ]
 
 
-def filter_and_plot_data(file_path, output_dir=None):
-    """
-    Reads data, filters, deduplicates elements, and plots a volcano chart.
+def load_with_dynamic_columns(file_path: str) -> pd.DataFrame:
+    with open(file_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    header_fields = lines[0].split()
+    max_len = max(len(line.split()) for line in lines)
+    column_names = header_fields + [f"extra_{i}" for i in range(len(header_fields), max_len)]
+    df = pd.read_csv(
+        file_path,
+        sep=r"\s+",
+        header=0,
+        names=column_names,
+        engine="python",
+    )
+    return df
 
-    - Filters rows where column 13 (index 12) is between 2.0 and 4.0.
-    - Plots column 19 vs. column 22 (1-based indices) if available.
-    - Trend lines: fit left/right separately, find their true intersection, and draw each segment split at that point.
+
+def filter_allowed(df: pd.DataFrame) -> pd.DataFrame:
+    allowed_labels = CONFIG.get("allowed_elements", DEFAULT_ALLOWED_LABELS)
+    allowed_bases = {label.split("_")[0] for label in allowed_labels}
+    preferred_variant = {label.split("_")[0]: label for label in allowed_labels if "_" in label}
+
+    df = df.copy()
+    df["__base"] = df["element"].astype(str).str.split("_").str[0]
+    df = df[df["__base"].isin(allowed_bases)]
+    if df.empty:
+        return df
+
+    deduped_rows = []
+    for base in df["__base"].unique():
+        subset = df[df["__base"] == base]
+        preferred = preferred_variant.get(base)
+        if preferred and preferred in subset["element"].values:
+            chosen = subset[subset["element"] == preferred].iloc[0]
+        else:
+            chosen = subset.iloc[0]
+        deduped_rows.append(chosen)
+
+    deduped = pd.DataFrame(deduped_rows).drop(columns="__base")
+    deduped["element"] = deduped["element"].astype(str).str.split("_").str[0]
+    return deduped
+
+
+def plot_oer_potential(file_path: str, output_dir: str | None = None):
+    """
+    Plot OER free-energy steps using columns 7, 8, 9 (1-based) as ΔG1, ΔG2, ΔG3.
+    ΔG4 is computed to close the 4e- cycle: ΔG4 = 4*1.23 - (ΔG1+ΔG2+ΔG3).
     """
     try:
-        # --- Load with dynamic column names to capture extra fields ---
-        with open(file_path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-        header_fields = lines[0].split()
-        max_len = max(len(line.split()) for line in lines)
-        column_names = header_fields + [f'extra_{i}' for i in range(len(header_fields), max_len)]
+        df = load_with_dynamic_columns(file_path)
 
-        df = pd.read_csv(
-            file_path,
-            sep=r'\s+',
-            header=0,
-            names=column_names,
-            engine='python'
-        )
-
-        # --- Filtering ---
-        filter_column_index = 12
-        filter_column_name = df.columns[filter_column_index]
-        df[filter_column_name] = pd.to_numeric(df[filter_column_name], errors='coerce')
-
-        filtered_df = df[
-            (df[filter_column_name] >= 2.0) & (df[filter_column_name] <= 4.0)
-        ].copy()
-
-        print(f"Successfully loaded data from {file_path}.")
-        print(f"Original rows: {len(df)}, Rows after filtering: {len(filtered_df)}")
-
-        if filtered_df.empty:
-            col_stats = pd.to_numeric(df[filter_column_name], errors='coerce')
-            print(f"No data remains after filtering. Column '{filter_column_name}' range: "
-                  f"min={col_stats.min()}, max={col_stats.max()}")
+        # Filter by 13th column (index 12) between 2.0 and 4.0 to stay consistent with other plots
+        filter_idx = 12
+        if filter_idx >= len(df.columns):
+            print(f"{file_path}: not enough columns for filtering (need index 12).")
+            return
+        filt_col = df.columns[filter_idx]
+        df[filt_col] = pd.to_numeric(df[filt_col], errors="coerce")
+        df = df[(df[filt_col] >= 2.0) & (df[filt_col] <= 4.0)].copy()
+        if df.empty:
+            print(f"{file_path}: no rows after filter 2.0-4.0 on {filt_col}.")
             return
 
-        # --- Keep only allowed elements and deduplicate by base (use preferred variant when specified) ---
-        allowed_labels = CONFIG.get("allowed_elements", DEFAULT_ALLOWED_LABELS)
-        allowed_bases = {label.split("_")[0] for label in allowed_labels}
-        preferred_variant = {label.split("_")[0]: label for label in allowed_labels if "_" in label}
-
-        def keep_allowed_and_dedupe(df_in):
-            if df_in.empty:
-                return df_in
-            df_in = df_in.copy()
-            df_in["__base"] = df_in["element"].astype(str).str.split("_").str[0]
-            df_in = df_in[df_in["__base"].isin(allowed_bases)]
-            if df_in.empty:
-                return df_in
-            deduped_rows = []
-            for base in df_in["__base"].unique():
-                subset = df_in[df_in["__base"] == base]
-                preferred = preferred_variant.get(base)
-                if preferred and preferred in subset["element"].values:
-                    chosen = subset[subset["element"] == preferred].iloc[0]
-                else:
-                    chosen = subset.iloc[0]
-                deduped_rows.append(chosen)
-            deduped = pd.DataFrame(deduped_rows).drop(columns="__base")
-            deduped["element"] = deduped["element"].astype(str).str.split("_").str[0]
-            return deduped
-
-        filtered_df = keep_allowed_and_dedupe(filtered_df)
-        if filtered_df.empty:
-            print("No allowed elements remain after filtering; nothing to plot.")
+        # Keep allowed elements and deduplicate variants
+        df = filter_allowed(df)
+        if df.empty:
+            print(f"{file_path}: no allowed elements after filtering list.")
             return
 
-        # --- Plot columns ---
-        x_col_index = 16
-        y_col_index = 20
-        if x_col_index >= len(filtered_df.columns) or y_col_index >= len(filtered_df.columns):
-            print(f"Error: Requested plot columns (19, 22) exceed available columns ({len(filtered_df.columns)}).")
-            print("Available columns (0-based):")
-            for i, col in enumerate(filtered_df.columns):
-                print(f"  {i}: {col}")
+        col_indices = [6, 7, 8]  # zero-based for columns 7, 8, 9
+        if any(idx >= len(df.columns) for idx in col_indices):
+            print(f"{file_path}: not enough columns to read ΔG1-3 (need indices 6,7,8).")
+            return
+        dg_cols = [df.columns[i] for i in col_indices]
+        df[dg_cols] = df[dg_cols].apply(pd.to_numeric, errors="coerce")
+        df.dropna(subset=dg_cols, inplace=True)
+        if df.empty:
+            print(f"{file_path}: no valid ΔG1-3 after numeric cleanup.")
             return
 
-        x_col_name = filtered_df.columns[x_col_index]
-        y_col_name = filtered_df.columns[y_col_index]
-
-        filtered_df[x_col_name] = pd.to_numeric(filtered_df[x_col_name], errors='coerce')
-        filtered_df[y_col_name] = pd.to_numeric(filtered_df[y_col_name], errors='coerce')
-        filtered_df.dropna(subset=[x_col_name, y_col_name], inplace=True)
-
-        if filtered_df.empty:
-            print("No valid data for plotting after cleaning non-numeric values.")
-            return
-
-        print(f"Plotting '{y_col_name}' vs. '{x_col_name}'.")
-
-        # --- Choose initial split seed (Pt x if present, else 2.0) ---
-        base_elements = filtered_df['element'].astype(str).str.split('_').str[0]
-        pt_mask = base_elements == 'Pt'
-        if pt_mask.any():
-            split_seed = float(filtered_df.loc[pt_mask, x_col_name].iloc[0])
-            print(f"Using Pt x-position as seed: split_seed = {split_seed}")
-        else:
-            split_seed = 2.0
-            print("Pt not found after filtering; using split_seed = 2.0")
-
-        left_df = filtered_df[filtered_df[x_col_name] < split_seed]
-        right_df = filtered_df[filtered_df[x_col_name] >= split_seed]
-
-        # --- Fit lines and find true intersection ---
-        def fit_line(subset):
-            if len(subset) < 2:
-                return None
-            x_vals = subset[x_col_name]
-            y_vals = subset[y_col_name]
-            m, b = np.polyfit(x_vals, y_vals, 1)
-            return m, b
-
-        left_fit = fit_line(left_df)
-        right_fit = fit_line(right_df)
-
-        cfg = CONFIG.get("volcano", {})
-        x_axis_min, x_axis_max = cfg.get("x_axis_limits", (0.0, 3.0))
-        plt.figure(figsize=cfg.get("figsize", (10, 7)))
-        plt.scatter(
-            filtered_df[x_col_name],
-            filtered_df[y_col_name],
-            alpha=cfg.get("scatter_alpha", 0.7),
-            color=cfg.get("scatter_color", "tab:blue"),
-            marker=cfg.get("scatter_marker", "o"),
-            s=cfg.get("scatter_size", 30),
-        )
-
-        if left_fit and right_fit and not left_df.empty and not right_df.empty:
-            m_l, b_l = left_fit
-            m_r, b_r = right_fit
-            if m_l != m_r:
-                x_int = (b_r - b_l) / (m_l - m_r)
-                x_int = max(x_axis_min, min(x_axis_max, x_int))
-                y_int = m_l * x_int + b_l
-
-                samples = cfg.get("trend_samples", 50)
-                x_left_range = np.linspace(x_axis_min, x_int, samples)
-                x_right_range = np.linspace(x_int, x_axis_max, samples)
-
-                line_style = cfg.get("trend_line_style", "--")
-                line_width = cfg.get("trend_line_width", 1.3)
-                plt.plot(
-                    x_left_range,
-                    m_l * x_left_range + b_l,
-                    color=cfg.get("trend_left_color", "orange"),
-                    linestyle=line_style,
-                    linewidth=line_width,
-                    label=f'{x_col_name} < {x_int:.2f} trend',
-                )
-                plt.plot(
-                    x_right_range,
-                    m_r * x_right_range + b_r,
-                    color=cfg.get("trend_right_color", "purple"),
-                    linestyle=line_style,
-                    linewidth=line_width,
-                    label=f'{x_col_name} >= {x_int:.2f} trend',
-                )
-                plt.scatter(
-                    [x_int],
-                    [y_int],
-                    color=cfg.get("split_line_color", "gray"),
-                    s=cfg.get("split_marker_size", 12),
-                    zorder=5,
-                )
-                plt.axvline(
-                    x_int,
-                    color=cfg.get("split_line_color", "gray"),
-                    linestyle=cfg.get("split_line_style", ":"),
-                    linewidth=cfg.get("split_line_width", 1),
-                )
-
-        # --- Labels with slight manual offsets for crowded ones ---
-        grouped = filtered_df.assign(_base=filtered_df['element'].astype(str).str.split('_').str[0])
-        label_positions = grouped.groupby('_base')[[x_col_name, y_col_name]].mean().reset_index()
-
-        label_offsets = cfg.get("label_offsets", {})
-        annot_fs = cfg.get("annotation_fontsize", 8)
-        for _, row in label_positions.iterrows():
-            label = row['_base']
-            x_val, y_val = row[x_col_name], row[y_col_name]
-            dx, dy = label_offsets.get(label, (0, 0))
-            plt.annotate(
-                label,
-                (x_val, y_val),
-                textcoords="offset points",
-                xytext=(dx, dy),
-                fontsize=annot_fs
-            )
-
-        label_fs = cfg.get("axes_label_fontsize", None)
-        title_fs = cfg.get("title_fontsize", None)
-        legend_fs = cfg.get("legend_fontsize", None)
-        plt.xlabel(f"{cfg.get('xlabel_prefix', 'Descriptor')}: {x_col_name} (eV)", fontsize=label_fs)
-        plt.ylabel(cfg.get("ylabel", f"Activity: {y_col_name} (eV)"), fontsize=label_fs)
-        plt.title(cfg.get("title", "Volcano Plot"), fontsize=title_fs)
-        grid_cfg = cfg.get("grid", {"linestyle": "--", "linewidth": 0.5, "which": "both"})
-        plt.grid(True, **grid_cfg)
-        if "xlim" in cfg:
-            plt.xlim(*cfg["xlim"])
-        if "ylim" in cfg:
-            plt.ylim(*cfg["ylim"])
-        if legend_fs:
-            leg = plt.legend()
-            if leg:
-                for text in leg.get_texts():
-                    text.set_fontsize(legend_fs)
+        cfg = CONFIG.get("potential", {})
+        stage_labels = cfg.get("stage_labels", ["*+2H2O", "OH*", "O*", "OOH*", "O2"])
+        ylabel = cfg.get("ylabel", "ΔG (eV)")
+        title_prefix = cfg.get("title_prefix", "OER Potential")
+        text_fs = cfg.get("text_fontsize", 10)
 
         target_dir = Path(output_dir) if output_dir else Path(".")
         os.makedirs(target_dir, exist_ok=True)
-        output_filename = target_dir / 'volcano_plot.png'
-        plt.savefig(output_filename)
-        plt.close()
 
-        print(f"\nPlot successfully generated and saved as '{output_filename}'.")
+        for _, row in df.iterrows():
+            element = str(row["element"]).split("_")[0]
+            dg1, dg2, dg3 = (float(row[c]) for c in dg_cols)
+            dg4 = 4 * 1.23 - (dg1 + dg2 + dg3)
+            steps = [0.0, dg1, dg1 + dg2, dg1 + dg2 + dg3, dg1 + dg2 + dg3 + dg4]
+            deltas = [dg1, dg2, dg3, dg4]
+            pds_idx = int(np.argmax(deltas))
+
+            xs = list(range(len(steps)))
+            plt.figure(figsize=cfg.get("figsize", (9, 6)))
+
+            # horizontal steps
+            for i in range(len(steps) - 1):
+                plt.plot(
+                    [xs[i], xs[i + 1]],
+                    [steps[i], steps[i]],
+                    color=cfg.get("line_color", "tab:blue"),
+                    linewidth=cfg.get("line_width", 2.0),
+                )
+                # vertical arrow for each ΔGi
+                y0, y1 = steps[i], steps[i + 1]
+                arrowprops = dict(
+                    arrowstyle="-|>",
+                    color=cfg.get("arrow_color", "black"),
+                    lw=cfg.get("arrow_width", 1.0),
+                    shrinkA=0,
+                    shrinkB=0,
+                    mutation_scale=cfg.get("arrow_head_width", 6),
+                )
+                plt.annotate(
+                    "",
+                    xy=(xs[i], y1),
+                    xytext=(xs[i], y0),
+                    arrowprops=arrowprops,
+                )
+                dy = deltas[i]
+                label_lines = [f"ΔG{i+1}", f"{dy:.2f}"]
+                if i == pds_idx:
+                    label_lines.append("PDS")
+                plt.text(
+                    xs[i] + 0.05,
+                    (y0 + y1) / 2,
+                    "\n".join(label_lines),
+                    fontsize=text_fs,
+                    color=cfg.get("pds_color", "red") if i == pds_idx else "black",
+                    va="center",
+                )
+
+            plt.xticks(xs, stage_labels, rotation=0)
+            plt.ylabel(ylabel, fontsize=cfg.get("axes_label_fontsize", 11))
+            plt.title(f"{title_prefix} - {element}", fontsize=cfg.get("title_fontsize", 13))
+            grid_cfg = cfg.get("grid", {"axis": "y", "linestyle": "--", "linewidth": 0.5})
+            plt.grid(True, **grid_cfg)
+            plt.ylim(bottom=min(0, min(steps) - 0.2))
+
+            out_path = target_dir / f"{element}_oer_potential.png"
+            plt.tight_layout()
+            plt.savefig(out_path)
+            plt.close()
+            print(f"Saved OER potential plot: {out_path}")
 
     except FileNotFoundError:
         print(f"Error: File not found at {file_path}")
@@ -244,6 +172,6 @@ def filter_and_plot_data(file_path, output_dir=None):
         print(f"An unexpected error occurred: {e}")
 
 
-if __name__ == '__main__':
-    DATA_FILE = 'c:\\Users\\yingkaiwu\\Desktop\\single-atom\\volcano\\pbe-d3-spin.dat'
-    filter_and_plot_data(DATA_FILE)
+if __name__ == "__main__":
+    DATA_FILE = r"c:\Users\yingkaiwu\Desktop\single-atom\volcano\pbe-d3.dat"
+    plot_oer_potential(DATA_FILE)
