@@ -1,4 +1,11 @@
 CONFIG = {
+    # Elements allowed for plotting; labels use the base name (suffixes are for selection preference only).
+    "allowed_elements": [
+        "Ag", "Au", "Bi", "Cd", "Co",
+        "Cr_pv", "Cu", "Fe", "Ga", "Hg", "In_d", "Ir",
+        "Mn_pv", "Mo_sv", "Ni", "Pb", "Pd", "Pt", "Rh",
+        "Ru_pv", "Sb", "Sn_d", "Sr_sv", "Zn",
+    ],
     "volcano": {
         "figsize": (10, 7),
         "scatter_alpha": 0.7,
@@ -52,5 +59,12 @@ CONFIG = {
         "axes_label_fontsize": 11,
         "title_fontsize": 13,
         "legend_fontsize": 10,
+        "annotation_fontsize": 8,
+        "label_offsets": {
+            "Ir": (10, 6),
+            "Cr": (-10, 6),
+            "Mn": (10, -6),
+            "Pb": (-10, -6),
+        },
     },
 }
