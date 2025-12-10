@@ -1,4 +1,4 @@
-#python rot_reo.py   --poscar octachedral_rot/Ir/Ir.vasp   --metal-index 0  --distance-oxygen-index 5  --angle-oxygen-index 6  --plane-scale 0.0  --target-o-offset 4  --angle-start 0  --angle-end 90  --angle-step 1
+#python rot_reo.py   --metal-index 0  --distance-oxygen-index 5  --angle-oxygen-index 6  --target-o-offset 4  --angle-start 0  --angle-end 120 --angle-step 1 --poscar octachedral_rot/Ir/Ir.vasp --plane-scale 0.0  
 
 
 POSCAR_FILE=Ir.vasp
