@@ -179,7 +179,8 @@ def plot_oer_potential(file_path: str, output_dir: str | None = None):
 
             out_path = target_dir / f"{element}_oer_potential.png"
             plt.tight_layout()
-            plt.savefig(out_path)
+            dpi = cfg.get("dpi", None)
+            plt.savefig(out_path, dpi=dpi)
             plt.close()
             print(f"Saved OER potential plot: {out_path}")
 

@@ -65,7 +65,9 @@ def plot_three_lines(file_path, output_dir=None):
         print("No allowed elements remained after base-name filtering; nothing to plot.")
         return
 
-    x_col_idx, y1_idx, y2_idx = 6, 7, 8
+    cfg = CONFIG.get("plot32", {})
+    x_col_idx = cfg.get("x_col_index", 6)
+    y1_idx, y2_idx = 7, 8
     if max(x_col_idx, y1_idx, y2_idx) >= len(df.columns):
         print(f"Not enough columns in {file_path}. Found {len(df.columns)} columns.")
         return
@@ -116,7 +118,6 @@ def plot_three_lines(file_path, output_dir=None):
     x_min, x_max = x.min(), x.max()
     x_range = np.linspace(x_min, x_max, 100)
 
-    cfg = CONFIG.get("plot32", {})
     colors = cfg.get("colors", {"y1": "tab:orange", "y2": "tab:purple"})
     markers = cfg.get("markers", {"y1": "o", "y2": "^"})
     legend_labels = cfg.get("legend_labels", {})
@@ -209,7 +210,8 @@ def plot_three_lines(file_path, output_dir=None):
     label_fs = cfg.get("axes_label_fontsize", None)
     title_fs = cfg.get("title_fontsize", None)
     legend_fs = cfg.get("legend_fontsize", None)
-    plt.xlabel(f"Column 7: {x_col} (eV)", fontsize=label_fs)
+    x_label_text = cfg.get("xlabel_override") or f"Column {x_col_idx + 1}: {x_col} (eV)"
+    plt.xlabel(x_label_text, fontsize=label_fs)
     plt.ylabel(cfg.get("ylabel", "Energy (eV)"), fontsize=label_fs)
     plt.title(cfg.get("title", "Scatter with Two Fitted Lines"), fontsize=title_fs)
     grid_cfg = cfg.get("grid", {"linestyle": "--", "linewidth": 0.5, "which": "both"})
@@ -226,10 +228,11 @@ def plot_three_lines(file_path, output_dir=None):
     target_dir = Path(output_dir) if output_dir else Path('.')
     os.makedirs(target_dir, exist_ok=True)
     out_path = target_dir / "plot_32.png"
-    plt.savefig(out_path)
+    dpi = cfg.get("dpi", None)
+    plt.savefig(out_path, dpi=dpi)
     print(f"Saved plot to {out_path}")
 
 
 if __name__ == "__main__":
-    DATA_FILE = r'c:\Users\yingkaiwu\Desktop\single-atom\volcano\pbe-d3-spin.dat'
+    DATA_FILE = r'c:\Users\yingkaiwu\Desktop\single-atom\volcano\pbe-d3.dat'
     plot_three_lines(DATA_FILE)

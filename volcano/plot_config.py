@@ -6,10 +6,13 @@ CONFIG = {
         "Mn_pv", "Mo_sv", "Ni", "Pb", "Pd", "Pt", "Rh",
         "Ru_pv", "Sb", "Sn_d", "Sr_sv", "Zn",
     ],
-        "volcano": {
-            "figsize": (10, 7),
+    "volcano": {
+        "figsize": (6, 6),
+        "dpi": 600,
         "scatter_alpha": 0.7,
-        "scatter_color": "tab:blue",
+        "scatter_color": "tab:blue",  # fallback; individual colors below override when set
+        "scatter_left_color": "#5a7fbf",
+        "scatter_right_color": "#9f66a8",
         "scatter_marker": "o",
         "scatter_size": 30,
         "G0_base": 4.43,
@@ -18,10 +21,11 @@ CONFIG = {
         "activity_column": "potential_neg", # y-axis; negative potential for volcano shape
         "split_seed_element": "Pd",     # use this element's x as initial split if present
         "split_seed_default": 2.0,      # fallback split seed if element not found
+        "xlabel_override": r"$\Delta E_{\mathrm{O*}}$ - $\Delta E_{\mathrm{HO*}}$ (eV)",        # optional custom x-axis label
         "trend_line_style": "--",
         "trend_line_width": 1.3,
-        "trend_left_color": "orange",
-        "trend_right_color": "purple",
+        "trend_left_color": "#5a7fbf",
+        "trend_right_color": "#9f66a8",
         "split_line_color": "gray",
         "split_line_style": ":",
         "split_line_width": 1,
@@ -31,10 +35,10 @@ CONFIG = {
         "grid": {"linestyle": "--", "linewidth": 0.5, "which": "both"},
         "xlim": (0, 3),
         "ylim": (-2.5, -0.5),
-        "axes_label_fontsize": 11,
+        "axes_label_fontsize": 15,
         "title_fontsize": 13,
         "legend_fontsize": 10,
-        "annotation_fontsize": 8,
+        "annotation_fontsize": 10,
         "label_offsets": {
             "Ir": (10, 6),
             "Cr": (-10, 6),
@@ -43,11 +47,13 @@ CONFIG = {
         },
         "title": "Volcano Plot",
         "xlabel_prefix": "Descriptor",
-        "ylabel": "Activity (eV)",
+        "ylabel": r"- $\eta_{\mathrm{OER}}$ (V)",
     },
     "plot32": {
-        "figsize": (10, 7),
+        "figsize": (6, 6),
+        "dpi": 600,
         "scatter_alpha": 0.7,
+        "x_col_index": 6,  # configurable x-axis column (0-based, default column 7)
         "colors": {
             "y1": "#5ec6ce",
             "y2": "#d9675c",
@@ -61,11 +67,12 @@ CONFIG = {
         "line_width": 1.3,
         "grid": {"linestyle": "--", "linewidth": 0.5, "which": "both"},
         "title": "Scatter with Two Fitted Lines",
-        "ylabel": "Energy (eV)",
-        "axes_label_fontsize": 11,
+        "ylabel": r"$\Delta E_{\mathrm{HOO*}}$ (eV)",
+        "xlabel_override": r"$\Delta E_{\mathrm{HO*}}$ (eV)",  # optional custom x-axis label
+        "axes_label_fontsize": 15,
         "title_fontsize": 13,
         "legend_fontsize": 10,
-        "annotation_fontsize": 8,
+        "annotation_fontsize": 12,
         # Optional custom legend text; fit labels support .format(y, m, b, r2)
         "legend_labels": {
             "y1_data": "ΔEO - ΔEHO (eV) data",
@@ -81,7 +88,8 @@ CONFIG = {
         },
     },
     "potential": {
-        "figsize": (9, 6),
+        "figsize": (3, 2),
+        "dpi": 600,
         "line_color": "tab:blue",
         "line_width": 2.5,
         "arrow_color": "black",
@@ -92,9 +100,9 @@ CONFIG = {
         "stage_labels": ["*+H$_2$O", "OH*", "O*", "OOH*", "O$_2$"],
         "ylabel": r"$\Delta G$ (eV)",
         "title_prefix": "OER Potential",
-        "axes_label_fontsize": 13,
+        "axes_label_fontsize": 15,
         "title_fontsize": 15,
-        "text_fontsize": 12,
+        "text_fontsize": 15,
         "tick_label_fontsize": 12,
         "grid": {"axis": "y", "linestyle": "--", "linewidth": 0.5},
         "show_grid": False,

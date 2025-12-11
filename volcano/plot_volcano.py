@@ -161,14 +161,31 @@ def filter_and_plot_data(file_path, output_dir=None):
 
         x_axis_min, x_axis_max = cfg.get("x_axis_limits", (0.0, 3.0))
         plt.figure(figsize=cfg.get("figsize", (10, 7)))
-        plt.scatter(
-            filtered_df[x_col_name],
-            filtered_df[y_col_name],
-            alpha=cfg.get("scatter_alpha", 0.7),
-            color=cfg.get("scatter_color", "tab:blue"),
-            marker=cfg.get("scatter_marker", "o"),
-            s=cfg.get("scatter_size", 30),
-        )
+        left_color = cfg.get("scatter_left_color") or cfg.get("trend_left_color", "tab:blue")
+        right_color = cfg.get("scatter_right_color") or cfg.get("trend_right_color", "tab:purple")
+        scatter_alpha = cfg.get("scatter_alpha", 0.7)
+        scatter_marker = cfg.get("scatter_marker", "o")
+        scatter_size = cfg.get("scatter_size", 30)
+        if not left_df.empty:
+            plt.scatter(
+                left_df[x_col_name],
+                left_df[y_col_name],
+                alpha=scatter_alpha,
+                color=left_color,
+                marker=scatter_marker,
+                s=scatter_size,
+                label=cfg.get("left_label", f"{x_col_name} < split"),
+            )
+        if not right_df.empty:
+            plt.scatter(
+                right_df[x_col_name],
+                right_df[y_col_name],
+                alpha=scatter_alpha,
+                color=right_color,
+                marker=scatter_marker,
+                s=scatter_size,
+                label=cfg.get("right_label", f"{x_col_name} >= split"),
+            )
 
         if left_fit and right_fit and not left_df.empty and not right_df.empty:
             m_l, b_l = left_fit
@@ -235,7 +252,8 @@ def filter_and_plot_data(file_path, output_dir=None):
         label_fs = cfg.get("axes_label_fontsize", None)
         title_fs = cfg.get("title_fontsize", None)
         legend_fs = cfg.get("legend_fontsize", None)
-        plt.xlabel(f"{cfg.get('xlabel_prefix', 'Descriptor')}: {x_col_name} (eV)", fontsize=label_fs)
+        x_label_text = cfg.get("xlabel_override") or f"{cfg.get('xlabel_prefix', 'Descriptor')}: {x_col_name} (eV)"
+        plt.xlabel(x_label_text, fontsize=label_fs)
         plt.ylabel(cfg.get("ylabel", f"Activity: {y_col_name} (eV)"), fontsize=label_fs)
         plt.title(cfg.get("title", "Volcano Plot"), fontsize=title_fs)
         grid_cfg = cfg.get("grid", {"linestyle": "--", "linewidth": 0.5, "which": "both"})
@@ -253,7 +271,8 @@ def filter_and_plot_data(file_path, output_dir=None):
         target_dir = Path(output_dir) if output_dir else Path(".")
         os.makedirs(target_dir, exist_ok=True)
         output_filename = target_dir / 'volcano_plot.png'
-        plt.savefig(output_filename)
+        dpi = cfg.get("dpi", None)
+        plt.savefig(output_filename, dpi=dpi)
         plt.close()
 
         print(f"\nPlot successfully generated and saved as '{output_filename}'.")
