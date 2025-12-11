@@ -62,6 +62,9 @@ def plot_oer_potential(file_path: str, output_dir: str | None = None):
     Plot OER free-energy steps using columns 7, 8, 9 (1-based) as ΔG1, ΔG2, ΔG3.
     ΔG4 is computed to close the 4e- cycle: ΔG4 = 4*1.23 - (ΔG1+ΔG2+ΔG3).
     """
+    data_path = Path(file_path)
+    data_name = data_path.stem  # folder/name prefix without suffix
+    data_title = data_path.name
     try:
         df = load_with_dynamic_columns(file_path)
 
@@ -83,9 +86,9 @@ def plot_oer_potential(file_path: str, output_dir: str | None = None):
             print(f"{file_path}: no allowed elements after filtering list.")
             return
 
-        col_indices = [6, 7, 8]  # zero-based for columns 7, 8, 9
+        col_indices = [14, 15, 16]  # zero-based for columns 15, 16, 17
         if any(idx >= len(df.columns) for idx in col_indices):
-            print(f"{file_path}: not enough columns to read ΔG1-3 (need indices 6,7,8).")
+            print(f"{file_path}: not enough columns to read ΔG1-3 (need indices 14,15,16).")
             return
         dg_cols = [df.columns[i] for i in col_indices]
         df[dg_cols] = df[dg_cols].apply(pd.to_numeric, errors="coerce")
@@ -99,63 +102,79 @@ def plot_oer_potential(file_path: str, output_dir: str | None = None):
         ylabel = cfg.get("ylabel", "ΔG (eV)")
         title_prefix = cfg.get("title_prefix", "OER Potential")
         text_fs = cfg.get("text_fontsize", 10)
+        line_color = cfg.get("line_color", "tab:blue")
+        line_width = cfg.get("line_width", 2.0)
+        tick_fs = cfg.get("tick_label_fontsize", 11)
+        show_grid = cfg.get("show_grid", True)
+        facecolor = cfg.get("facecolor", None)
 
-        target_dir = Path(output_dir) if output_dir else Path(".")
+        base_dir = Path(output_dir) if output_dir else Path(".")
+        target_dir = base_dir / data_name
         os.makedirs(target_dir, exist_ok=True)
 
         for _, row in df.iterrows():
             element = str(row["element"]).split("_")[0]
             dg1, dg2, dg3 = (float(row[c]) for c in dg_cols)
-            dg4 = 4 * 1.23 - (dg1 + dg2 + dg3)
+            dg4 = 4.43 - (dg1 + dg2 + dg3)
             steps = [0.0, dg1, dg1 + dg2, dg1 + dg2 + dg3, dg1 + dg2 + dg3 + dg4]
             deltas = [dg1, dg2, dg3, dg4]
             pds_idx = int(np.argmax(deltas))
 
-            xs = list(range(len(steps)))
+            n_states = len(steps)
+            x_centers = np.arange(n_states)
+            x_left = x_centers - 0.5
+            x_right = x_centers + 0.5
+
             plt.figure(figsize=cfg.get("figsize", (9, 6)))
+            ax = plt.gca()
+            if facecolor is not None:
+                ax.set_facecolor(facecolor)
 
-            # horizontal steps
-            for i in range(len(steps) - 1):
+            # horizontal plateaus centered on ticks
+            for i in range(n_states):
                 plt.plot(
-                    [xs[i], xs[i + 1]],
+                    [x_left[i], x_right[i]],
                     [steps[i], steps[i]],
-                    color=cfg.get("line_color", "tab:blue"),
-                    linewidth=cfg.get("line_width", 2.0),
+                    color=line_color,
+                    linewidth=line_width,
                 )
-                # vertical arrow for each ΔGi
-                y0, y1 = steps[i], steps[i + 1]
-                arrowprops = dict(
-                    arrowstyle="-|>",
-                    color=cfg.get("arrow_color", "black"),
-                    lw=cfg.get("arrow_width", 1.0),
-                    shrinkA=0,
-                    shrinkB=0,
-                    mutation_scale=cfg.get("arrow_head_width", 6),
-                )
-                plt.annotate(
-                    "",
-                    xy=(xs[i], y1),
-                    xytext=(xs[i], y0),
-                    arrowprops=arrowprops,
-                )
-                dy = deltas[i]
-                label_lines = [f"ΔG{i+1}", f"{dy:.2f}"]
-                if i == pds_idx:
-                    label_lines.append("PDS")
-                plt.text(
-                    xs[i] + 0.05,
-                    (y0 + y1) / 2,
-                    "\n".join(label_lines),
-                    fontsize=text_fs,
-                    color=cfg.get("pds_color", "red") if i == pds_idx else "black",
-                    va="center",
-                )
+                if i < n_states - 1:
+                    y0, y1 = steps[i], steps[i + 1]
+                    # vertical connector between plateaus
+                    vcolor = cfg.get("pds_color", "red") if i == pds_idx else line_color
+                    plt.plot(
+                        [x_right[i], x_right[i]],
+                        [y0, y1],
+                        color=vcolor,
+                        linewidth=line_width,
+                    )
+                    dy = deltas[i]
+                    label_lines = [rf"$\Delta G_{{{i+1}}}$", f"{dy:.2f}"]
+                    if i == pds_idx:
+                        label_lines.append("PDS")
+                    plt.text(
+                        x_right[i] + 0.05,
+                        (y0 + y1) / 2,
+                        "\n".join(label_lines),
+                        fontsize=text_fs,
+                        color=cfg.get("pds_color", "red") if i == pds_idx else "black",
+                        va="center",
+                    )
 
-            plt.xticks(xs, stage_labels, rotation=0)
+            tick_positions = x_centers
+            # Trim/extend labels to match tick count
+            if len(stage_labels) < len(tick_positions):
+                labels = stage_labels + [""] * (len(tick_positions) - len(stage_labels))
+            else:
+                labels = stage_labels[: len(tick_positions)]
+            plt.xticks(tick_positions, labels, rotation=0, fontsize=tick_fs)
+            ax.tick_params(axis="y", labelsize=tick_fs)
+            plt.xlim(-0.5, n_states - 0.5)
             plt.ylabel(ylabel, fontsize=cfg.get("axes_label_fontsize", 11))
-            plt.title(f"{title_prefix} - {element}", fontsize=cfg.get("title_fontsize", 13))
+            plt.title(f"{title_prefix} ({data_title}) - {element}", fontsize=cfg.get("title_fontsize", 13))
             grid_cfg = cfg.get("grid", {"axis": "y", "linestyle": "--", "linewidth": 0.5})
-            plt.grid(True, **grid_cfg)
+            if show_grid:
+                plt.grid(True, **grid_cfg)
             plt.ylim(bottom=min(0, min(steps) - 0.2))
 
             out_path = target_dir / f"{element}_oer_potential.png"

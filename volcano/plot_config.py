@@ -6,12 +6,18 @@ CONFIG = {
         "Mn_pv", "Mo_sv", "Ni", "Pb", "Pd", "Pt", "Rh",
         "Ru_pv", "Sb", "Sn_d", "Sr_sv", "Zn",
     ],
-    "volcano": {
-        "figsize": (10, 7),
+        "volcano": {
+            "figsize": (10, 7),
         "scatter_alpha": 0.7,
         "scatter_color": "tab:blue",
         "scatter_marker": "o",
         "scatter_size": 30,
+        "G0_base": 4.43,
+        "potential_shift": 1.11,        # potential = max(ΔG1-4) - shift
+        "descriptor_column": "dG2",     # x-axis; derived from columns 7,8,9
+        "activity_column": "potential_neg", # y-axis; negative potential for volcano shape
+        "split_seed_element": "Pd",     # use this element's x as initial split if present
+        "split_seed_default": 2.0,      # fallback split seed if element not found
         "trend_line_style": "--",
         "trend_line_width": 1.3,
         "trend_left_color": "orange",
@@ -24,7 +30,7 @@ CONFIG = {
         "x_axis_limits": (0.0, 3.0),
         "grid": {"linestyle": "--", "linewidth": 0.5, "which": "both"},
         "xlim": (0, 3),
-        "ylim": (-2, -0.5),
+        "ylim": (-2.5, -0.5),
         "axes_label_fontsize": 11,
         "title_fontsize": 13,
         "legend_fontsize": 10,
@@ -43,8 +49,8 @@ CONFIG = {
         "figsize": (10, 7),
         "scatter_alpha": 0.7,
         "colors": {
-            "y1": "tab:orange",
-            "y2": "tab:purple",
+            "y1": "#5ec6ce",
+            "y2": "#d9675c",
         },
         "markers": {
             "y1": "o",
@@ -60,6 +66,13 @@ CONFIG = {
         "title_fontsize": 13,
         "legend_fontsize": 10,
         "annotation_fontsize": 8,
+        # Optional custom legend text; fit labels support .format(y, m, b, r2)
+        "legend_labels": {
+            "y1_data": "ΔEO - ΔEHO (eV) data",
+            "y2_data": "ΔEHOO - ΔEHO (eV) data",
+            "y1_fit": "y={m:.3f}x+{b:.3f}, R²={r2:.3f}",
+            "y2_fit": "y={m:.3f}x+{b:.3f}, R²={r2:.3f}",
+        },
         "label_offsets": {
             "Ir": (10, 6),
             "Cr": (-10, 6),
@@ -70,18 +83,21 @@ CONFIG = {
     "potential": {
         "figsize": (9, 6),
         "line_color": "tab:blue",
-        "line_width": 2.0,
+        "line_width": 2.5,
         "arrow_color": "black",
         "arrow_width": 1.0,
         "arrow_head_width": 6,
         "arrow_head_length": 6,
         "pds_color": "red",
-        "stage_labels": ["*+2H2O", "OH*", "O*", "OOH*", "O2"],
-        "ylabel": "ΔG (eV)",
+        "stage_labels": ["*+H$_2$O", "OH*", "O*", "OOH*", "O$_2$"],
+        "ylabel": r"$\Delta G$ (eV)",
         "title_prefix": "OER Potential",
-        "axes_label_fontsize": 11,
-        "title_fontsize": 13,
-        "text_fontsize": 10,
+        "axes_label_fontsize": 13,
+        "title_fontsize": 15,
+        "text_fontsize": 12,
+        "tick_label_fontsize": 12,
         "grid": {"axis": "y", "linestyle": "--", "linewidth": 0.5},
+        "show_grid": False,
+        "facecolor": "white",
     },
 }

@@ -119,12 +119,33 @@ def plot_three_lines(file_path, output_dir=None):
     cfg = CONFIG.get("plot32", {})
     colors = cfg.get("colors", {"y1": "tab:orange", "y2": "tab:purple"})
     markers = cfg.get("markers", {"y1": "o", "y2": "^"})
+    legend_labels = cfg.get("legend_labels", {})
+
+    def _data_label(key, default):
+        # Allow custom legend text per series; fallback to column-derived default.
+        return legend_labels.get(key) or default
 
     plt.figure(figsize=cfg.get("figsize", (10, 7)))
     scatter_alpha = cfg.get("scatter_alpha", 0.7)
     scatter_size = cfg.get("scatter_size", 30)
-    plt.scatter(x, y1, alpha=scatter_alpha, s=scatter_size, marker=markers.get("y1", "o"), color=colors["y1"], label=f"{y1_col} data")
-    plt.scatter(x, y2, alpha=scatter_alpha, s=scatter_size, marker=markers.get("y2", "^"), color=colors["y2"], label=f"{y2_col} data")
+    plt.scatter(
+        x,
+        y1,
+        alpha=scatter_alpha,
+        s=scatter_size,
+        marker=markers.get("y1", "o"),
+        color=colors["y1"],
+        label=_data_label("y1_data", f"{y1_col} data"),
+    )
+    plt.scatter(
+        x,
+        y2,
+        alpha=scatter_alpha,
+        s=scatter_size,
+        marker=markers.get("y2", "^"),
+        color=colors["y2"],
+        label=_data_label("y2_data", f"{y2_col} data"),
+    )
 
     # Labels: follow volcano rules (base element name, optional offsets), plotted separately for the two series
     grouped = df.assign(_base=df["element"].astype(str).str.split("_").str[0])
@@ -163,10 +184,27 @@ def plot_three_lines(file_path, output_dir=None):
 
     line_style = cfg.get("line_style", "--")
     line_width = cfg.get("line_width", 1.3)
-    plt.plot(x_range, m1 * x_range + b1, color=colors["y1"], linestyle=line_style, linewidth=line_width,
-             label=f"{y1_col} fit: y={m1:.3f}x+{b1:.3f}, R^2={r2_1:.3f}")
-    plt.plot(x_range, m2 * x_range + b2, color=colors["y2"], linestyle=line_style, linewidth=line_width,
-             label=f"{y2_col} fit: y={m2:.3f}x+{b2:.3f}, R^2={r2_2:.3f}")
+    y1_fit_label = legend_labels.get("y1_fit") or f"{y1_col} fit: y={m1:.3f}x+{b1:.3f}, R^2={r2_1:.3f}"
+    y2_fit_label = legend_labels.get("y2_fit") or f"{y2_col} fit: y={m2:.3f}x+{b2:.3f}, R^2={r2_2:.3f}"
+    y1_fit_label = y1_fit_label.format(y=y1_col, m=m1, b=b1, r2=r2_1)
+    y2_fit_label = y2_fit_label.format(y=y2_col, m=m2, b=b2, r2=r2_2)
+
+    plt.plot(
+        x_range,
+        m1 * x_range + b1,
+        color=colors["y1"],
+        linestyle=line_style,
+        linewidth=line_width,
+        label=y1_fit_label,
+    )
+    plt.plot(
+        x_range,
+        m2 * x_range + b2,
+        color=colors["y2"],
+        linestyle=line_style,
+        linewidth=line_width,
+        label=y2_fit_label,
+    )
 
     label_fs = cfg.get("axes_label_fontsize", None)
     title_fs = cfg.get("title_fontsize", None)

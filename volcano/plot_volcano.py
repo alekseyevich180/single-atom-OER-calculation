@@ -88,21 +88,42 @@ def filter_and_plot_data(file_path, output_dir=None):
             print("No allowed elements remain after filtering; nothing to plot.")
             return
 
-        # --- Plot columns ---
-        x_col_index = 16
-        y_col_index = 20
-        if x_col_index >= len(filtered_df.columns) or y_col_index >= len(filtered_df.columns):
-            print(f"Error: Requested plot columns (19, 22) exceed available columns ({len(filtered_df.columns)}).")
-            print("Available columns (0-based):")
-            for i, col in enumerate(filtered_df.columns):
-                print(f"  {i}: {col}")
+        # --- Build ΔG1-4 from columns 7/8/9 (1-based); no cumulative energies ---
+        energy_indices = [6, 7, 8]  # zero-based for columns 7,8,9
+        if any(idx >= len(filtered_df.columns) for idx in energy_indices):
+            print(f"Error: Need columns 7,8,9 (indices 6,7,8) to build ΔG1-4, but only {len(filtered_df.columns)} columns present.")
+            return
+        dg_cols = [filtered_df.columns[i] for i in energy_indices]
+        filtered_df[dg_cols] = filtered_df[dg_cols].apply(pd.to_numeric, errors="coerce")
+        filtered_df.dropna(subset=dg_cols, inplace=True)
+        if filtered_df.empty:
+            print("No valid rows after parsing columns 7,8,9.")
             return
 
-        x_col_name = filtered_df.columns[x_col_index]
-        y_col_name = filtered_df.columns[y_col_index]
+        cfg = CONFIG.get("volcano", {})
+        g0_base = cfg.get("G0_base", 4.43)
+        potential_shift = cfg.get("potential_shift", 1.11)  # potential = max(ΔG) - shift
 
-        filtered_df[x_col_name] = pd.to_numeric(filtered_df[x_col_name], errors='coerce')
-        filtered_df[y_col_name] = pd.to_numeric(filtered_df[y_col_name], errors='coerce')
+        filtered_df["dG1"] = filtered_df[dg_cols[0]]
+        filtered_df["dG2"] = filtered_df[dg_cols[1]] - filtered_df[dg_cols[0]]
+        filtered_df["dG3"] = filtered_df[dg_cols[2]] - filtered_df[dg_cols[1]]
+        filtered_df["dG4"] = g0_base - filtered_df[dg_cols[2]]
+
+        filtered_df["limiting_dG"] = filtered_df[["dG1", "dG2", "dG3", "dG4"]].max(axis=1)
+        # Potential definition: max(ΔG1-4) - potential_shift
+        filtered_df["potential"] = filtered_df["limiting_dG"] - potential_shift
+        filtered_df["potential_neg"] = -filtered_df["potential"]  # invert for volcano plotting
+        print(f"Computed potential as max(ΔG1-4) - {potential_shift} eV; using its negative for plotting.")
+
+        descriptor_col = cfg.get("descriptor_column", "dG2")
+        activity_col = cfg.get("activity_column", "potential_neg")
+        missing = [col for col in (descriptor_col, activity_col) if col not in filtered_df.columns]
+        if missing:
+            print(f"Configured columns not found: {missing}. Available derived columns: dG1-4, limiting_dG, potential, potential_neg.")
+            return
+
+        x_col_name = descriptor_col
+        y_col_name = activity_col
         filtered_df.dropna(subset=[x_col_name, y_col_name], inplace=True)
 
         if filtered_df.empty:
@@ -111,15 +132,17 @@ def filter_and_plot_data(file_path, output_dir=None):
 
         print(f"Plotting '{y_col_name}' vs. '{x_col_name}'.")
 
-        # --- Choose initial split seed (Pt x if present, else 2.0) ---
+        # --- Choose initial split seed (configurable element or fallback) ---
+        split_element = cfg.get("split_seed_element", "Pd")
+        split_default = cfg.get("split_seed_default", 2.0)
         base_elements = filtered_df['element'].astype(str).str.split('_').str[0]
-        pt_mask = base_elements == 'Pt'
-        if pt_mask.any():
-            split_seed = float(filtered_df.loc[pt_mask, x_col_name].iloc[0])
-            print(f"Using Pt x-position as seed: split_seed = {split_seed}")
+        seed_mask = base_elements == split_element
+        if seed_mask.any():
+            split_seed = float(filtered_df.loc[seed_mask, x_col_name].iloc[0])
+            print(f"Using {split_element} x-position as seed: split_seed = {split_seed}")
         else:
-            split_seed = 2.0
-            print("Pt not found after filtering; using split_seed = 2.0")
+            split_seed = split_default
+            print(f"{split_element} not found after filtering; using split_seed = {split_default}")
 
         left_df = filtered_df[filtered_df[x_col_name] < split_seed]
         right_df = filtered_df[filtered_df[x_col_name] >= split_seed]
@@ -136,7 +159,6 @@ def filter_and_plot_data(file_path, output_dir=None):
         left_fit = fit_line(left_df)
         right_fit = fit_line(right_df)
 
-        cfg = CONFIG.get("volcano", {})
         x_axis_min, x_axis_max = cfg.get("x_axis_limits", (0.0, 3.0))
         plt.figure(figsize=cfg.get("figsize", (10, 7)))
         plt.scatter(
@@ -245,5 +267,5 @@ def filter_and_plot_data(file_path, output_dir=None):
 
 
 if __name__ == '__main__':
-    DATA_FILE = 'c:\\Users\\yingkaiwu\\Desktop\\single-atom\\volcano\\pbe-d3-spin.dat'
+    DATA_FILE = 'c:\\Users\\yingkaiwu\\Desktop\\single-atom\\volcano\\pbe-spinoff.dat'
     filter_and_plot_data(DATA_FILE)
