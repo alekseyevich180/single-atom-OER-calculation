@@ -21,7 +21,7 @@ MAD_THRESHOLD = 3.0    # ⭐ 提高到 3.0，增强基于中位数的稳健性
 
 # --- 2.1. 异常值排除（手动） ---
 ANGLE_FILTER_ENABLED = True # 是否启用角度筛选
-ANGLE_MIN = 130             # 筛选的最小角度
+ANGLE_MIN = 110             # 筛选的最小角度
 ANGLE_MAX = 180    
 
 # --- 3. GPR 模型和训练参数 (优化后) ---
