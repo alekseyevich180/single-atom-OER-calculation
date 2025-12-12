@@ -412,7 +412,7 @@ def run_rotation(settings: RotationSettings):
 
         calculated_angle = calculate_angle(M, angle_reference, O_target_final)
         results.append(
-            f"角度， {angle} , 计算的夹角， {calculated_angle:.2f} , surface_angle， {surface_angle:.2f}\n"
+            f"角度  {angle}  计算的夹角 {calculated_angle:.2f} surface_angle {surface_angle:.2f}\n"
         )
 
     results_path = (

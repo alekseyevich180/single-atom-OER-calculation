@@ -3,9 +3,10 @@ from math import ceil
 from pathlib import Path
 
 from PIL import Image
+from plot_config import CONFIG
 
 
-def combine_potential(folder: str, cols: int = 4, output_name: str | None = None) -> Path | None:
+def combine_potential(folder: str, cols: int | None = None, output_name: str | None = None) -> Path | None:
     """
     Combine per-element potential images in `folder` into a grid with `cols` columns.
     The merged image is saved to the parent directory of `folder`.
@@ -22,6 +23,9 @@ def combine_potential(folder: str, cols: int = 4, output_name: str | None = None
     if not img_paths:
         print(f"No images found in {src_dir}")
         return None
+
+    cfg = CONFIG.get("potential", {})
+    cols = cols or cfg.get("combine_columns", 4)
 
     images = [Image.open(p) for p in img_paths]
     widths, heights = zip(*(im.size for im in images))
@@ -41,7 +45,7 @@ def combine_potential(folder: str, cols: int = 4, output_name: str | None = None
     parent = src_dir.parent
     output_name = output_name or f"{src_dir.name}_potential_grid.png"
     out_path = parent / output_name
-    canvas.save(out_path, dpi=im.info.get("dpi", (300, 300)))
+    canvas.save(out_path, dpi=im.info.get("dpi", (cfg.get("dpi", 300), cfg.get("dpi", 300))))
     print(f"Saved grid: {out_path}")
     return out_path
 

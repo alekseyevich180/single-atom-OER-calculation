@@ -103,9 +103,10 @@ CONFIG = {
         "axes_label_fontsize": 8,
         "title_fontsize": 8,
         "text_fontsize": 6,
-        "tick_label_fontsize": 7,
+        "tick_label_fontsize": 8,
         "grid": {"axis": "y", "linestyle": "--", "linewidth": 0.5},
         "show_grid": False,
         "facecolor": "white",
+        "combine_columns": 4,  # columns when stitching per-element potential images
     },
 }
