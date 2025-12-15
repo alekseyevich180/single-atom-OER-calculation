@@ -153,7 +153,7 @@ def main():
     colors = plt.cm.get_cmap('tab20', len(elements))
 
     plt.style.use('seaborn-v0_8-white')
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(12, 9))
 
     for i, element in enumerate(elements):
         X_pred, y_pred = get_trend_line_for_element(element)
