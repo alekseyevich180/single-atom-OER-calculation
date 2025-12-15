@@ -171,7 +171,7 @@ def main():
     plt.xlabel('O-M-O Angle (°)', fontsize=14)
     plt.ylabel('-ICOHP (eV)', fontsize=14)
     plt.xlim(130, 180.6)
-    plt.ylim(0.6, 1.9)
+    plt.ylim(0.4, 1.9)
     plt.legend(fontsize=12, loc='best', frameon=True, shadow=True)
     plt.tick_params(axis='both', which='major', labelsize=12)
     plt.tight_layout(pad=1.5)

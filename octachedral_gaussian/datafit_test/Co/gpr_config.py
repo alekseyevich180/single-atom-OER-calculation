@@ -70,7 +70,7 @@ FONT_SIZE_LEGEND = 12
 LINE_WIDTH_TREND = 2
 
 # GPR 趋势线图 (图 5)
-PRED_ANGLE_MIN = 130.0   # 趋势线预测的最小角度 (用于生成趋势线数据)
+PRED_ANGLE_MIN = 110.0   # 趋势线预测的最小角度 (用于生成趋势线数据)
 PRED_ANGLE_MAX = 180.0   # 趋势线预测的最大角度 (用于生成趋势线数据)
 PRED_POINTS = 1000       # 趋势线上的点数
 X_LABEL_GPR = 'O-Co-O angle (°)'
@@ -87,7 +87,7 @@ AUTO_X_LIMITS_GPR = False
 AUTO_Y_LIMITS_GPR = True 
 
 # 手动设置的轴限制 (仅在 AUTO_... 为 False 时有效，格式为 (min, max))
-X_LIM_GPR = (130.0, 181.0)
+X_LIM_GPR = (110.0, 181.0)
 Y_LIM_GPR = (1.0, 2.0)
 
 
@@ -106,6 +106,6 @@ RESIDUAL_X_LIMITS = None
 
 # --- 图像保存配置 ---
 SAVE_PLOTS = True                  # 是否自动保存图像 (True/False)
-SAVE_DIR = 'Ru_Results'           # 图像保存的文件夹名称
+SAVE_DIR = 'Co_Results'           # 图像保存的文件夹名称
 DPI = 300                          # 保存图像的分辨率 (DPI)
 FILE_FORMAT = 'png'                # 保存图像的文件格式 ('png', 'pdf', 'svg' 等)
