@@ -240,16 +240,19 @@ plt.figure(figsize=cfg.FIG_SIZE)
 plt.scatter(
     scaler_X.inverse_transform(X_scaled),
     scaler_y.inverse_transform(y_scaled.reshape(-1, 1)),
-    color='black',
-    alpha=0.6,
     label='Filtered Data',
-    marker='x'
+    s=cfg.SCATTER_SIZE,
+    facecolors=cfg.SCATTER_FACE_COLOR,
+    edgecolors=cfg.SCATTER_EDGE_COLOR,
+    linewidths=cfg.SCATTER_LINEWIDTH,
+    alpha=cfg.SCATTER_ALPHA,
+    marker=cfg.SCATTER_MARKER
 )
 
 plt.plot(
     X_pred_original.ravel(),
     y_pred_original,
-    color='red',
+    color=cfg.TREND_COLOR,
     linewidth=cfg.LINE_WIDTH_TREND,
     label='GPR Trend'
 )
@@ -338,4 +341,3 @@ plt.legend(fontsize=cfg.FONT_SIZE_LEGEND)
 plt.tight_layout()
 save_plot("Figure_7_Residuals_Distribution")
 plt.show()
-

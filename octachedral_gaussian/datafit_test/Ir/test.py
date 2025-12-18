@@ -108,6 +108,16 @@ X = data[:, cfg.FEATURE_COL].reshape(-1, 1)
 y = data[:, cfg.TARGET_COL] * cfg.TARGET_SIGN
 print(f"数据加载完成。总数据点: {len(y)}")
 
+# --- ⭐ 新增: 根据角度范围 (130-180) 选取数据 ---
+if cfg.ANGLE_FILTER_ENABLED:
+    angle_min, angle_max = cfg.ANGLE_MIN, cfg.ANGLE_MAX
+    angle_mask = ((X >= angle_min) & (X <= angle_max)).flatten()
+
+X = X[angle_mask].reshape(-1, 1)
+y = y[angle_mask]
+print(f"数据筛选完成 ({angle_min}°-{angle_max}°): 剩余 {len(y)} 个数据点。")
+# --- 结束新增 ---
+
 # ==========================
 # 2. 比较异常值检测方法 + 不同 kernel
 # ==========================
@@ -293,21 +303,32 @@ plt.figure(figsize=cfg.FIG_SIZE)
 plt.scatter(
     X_for_plot,
     y_for_plot,
-    color='black',
-    alpha=0.6,
-    label='Filtered Data',
-    marker='x'
+    #label=getattr(cfg, "LEGEND_FILTER_LABEL", "Filtered Data"),
+    s=cfg.SCATTER_SIZE,
+    facecolors=cfg.SCATTER_FACE_COLOR,
+    edgecolors=cfg.SCATTER_EDGE_COLOR,
+    linewidths=cfg.SCATTER_LINEWIDTH,
+    alpha=cfg.SCATTER_ALPHA,
+    marker=cfg.SCATTER_MARKER
 )
 
 plt.plot(
     X_pred_original.ravel(),
     y_pred_original,
-    color='red',
+    color=cfg.TREND_COLOR,
     linewidth=cfg.LINE_WIDTH_TREND,
-    label='GPR Trend'
+    label=getattr(cfg, "LEGEND_TREND_LABEL", "GPR Trend")
 )
 
-plt.title(f'Gaussian Process Regression (Method: {best_method}, Kernel: {best_kernel})\nTrain R²: {train_r2:.3f}, Test R²: {test_r2:.3f}', fontsize=cfg.FONT_SIZE_TITLE)
+title_parts = []
+title_line1 = getattr(cfg, "TITLE_MAIN", None)
+if title_line1:
+    title_parts.append(title_line1.format(method=best_method, kernel=best_kernel))
+title_line2 = getattr(cfg, "TITLE_R2", None)
+if title_line2:
+    title_parts.append(title_line2.format(train=train_r2, test=test_r2))
+if title_parts:
+    plt.title("\n".join(title_parts), fontsize=cfg.FONT_SIZE_TITLE)
 plt.xlabel(cfg.X_LABEL_GPR, fontsize=cfg.FONT_SIZE_LABEL)
 plt.ylabel(cfg.Y_LABEL_GPR, fontsize=cfg.FONT_SIZE_LABEL)
 

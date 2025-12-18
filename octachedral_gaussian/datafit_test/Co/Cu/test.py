@@ -303,16 +303,19 @@ plt.figure(figsize=cfg.FIG_SIZE)
 plt.scatter(
     X_for_plot,
     y_for_plot,
-    color='black',
-    alpha=0.6,
     label='Filtered Data',
-    marker='x'
+    s=cfg.SCATTER_SIZE,
+    facecolors=cfg.SCATTER_FACE_COLOR,
+    edgecolors=cfg.SCATTER_EDGE_COLOR,
+    linewidths=cfg.SCATTER_LINEWIDTH,
+    alpha=cfg.SCATTER_ALPHA,
+    marker=cfg.SCATTER_MARKER
 )
 
 plt.plot(
     X_pred_original.ravel(),
     y_pred_original,
-    color='red',
+    color=cfg.TREND_COLOR,
     linewidth=cfg.LINE_WIDTH_TREND,
     label='GPR Trend'
 )
