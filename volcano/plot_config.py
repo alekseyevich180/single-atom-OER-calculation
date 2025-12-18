@@ -7,7 +7,7 @@ CONFIG = {
         "Ru_pv", "Sb", "Sn_d", "Sr_sv", "Zn",
     ],
     "volcano": {
-        "figsize": (6.1, 6),
+        "figsize": (5, 4),
         "dpi": 600,
         "scatter_alpha": 0.7,
         "scatter_color": "tab:blue",  # fallback; individual colors below override when set
@@ -35,10 +35,10 @@ CONFIG = {
         "grid": {"linestyle": "--", "linewidth": 0.5, "which": "both"},
         "xlim": (0, 3),
         "ylim": (-2.5, -0.5),
-        "axes_label_fontsize": 15,
-        "title_fontsize": 13,
-        "legend_fontsize": 10,
-        "annotation_fontsize": 10,
+        "axes_label_fontsize": 11,
+        "title_fontsize": 12,
+        "legend_fontsize": 9,
+        "annotation_fontsize": 9,
         "label_offsets": {
             "Ir": (10, 6),
             "Cr": (-10, 6),
@@ -50,7 +50,7 @@ CONFIG = {
         "ylabel": r"- $\eta_{\mathrm{OER}}$ (V)",
     },
     "plot32": {
-        "figsize": (6, 6),
+        "figsize": (5, 4),
         "dpi": 600,
         "scatter_alpha": 0.7,
         "x_col_index": 6,  # configurable x-axis column (0-based, default column 7)
@@ -69,10 +69,10 @@ CONFIG = {
         "title": r"The relation between $\Delta E_{\mathrm{O*}}$ - $\Delta E_{\mathrm{HO*}}$ and $\Delta E_{\mathrm{HOO*}}$ - $\Delta E_{\mathrm{HO*}}$",
         "ylabel": r"$\Delta E_{\mathrm{ads}}$ (eV)",
         "xlabel_override": r"$\Delta E_{\mathrm{HO*}}$ (eV)",  # optional custom x-axis label
-        "axes_label_fontsize": 15,
-        "title_fontsize": 13,
-        "legend_fontsize": 10,
-        "annotation_fontsize": 12,
+        "axes_label_fontsize": 11,
+        "title_fontsize": 12,
+        "legend_fontsize": 9,
+        "annotation_fontsize": 10,
         # Optional custom legend text; fit labels support .format(y, m, b, r2)
         "legend_labels": {
             "y1_data": "ΔEO - ΔEHO (eV) data",
