@@ -21,7 +21,7 @@ MAD_THRESHOLD = 3.0    # ⭐ 提高到 3.0，增强基于中位数的稳健性
 
 # --- 2.1. 异常值排除（手动） ---
 ANGLE_FILTER_ENABLED = True # 是否启用角度筛选
-ANGLE_MIN = 130             # 筛选的最小角度
+ANGLE_MIN = 120             # 筛选的最小角度
 ANGLE_MAX = 180    
 
 # --- 3. GPR 模型和训练参数 (优化后) ---
@@ -39,8 +39,8 @@ FINAL_N_RESTARTS = 20
 
 # --- 6. 数据平滑配置 ---
 BINNING_ENABLED = True     # ⭐ 启用滑动窗口平滑
-WINDOW_WIDTH = 2         # 窗口的宽度 (例如 0.5 度)
-STEP_SIZE = 1           # 滑动窗口的步长 (例如 0.25 度，重叠 50%)
+WINDOW_WIDTH = 4         # 窗口的宽度 (例如 0.5 度)
+STEP_SIZE = 2           # 滑动窗口的步长 (例如 0.25 度，重叠 50%)
 
 # --- 4. 候选核函数定义 (优化后) ---
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, Matern, WhiteKernel
@@ -63,19 +63,29 @@ KERNELS = {
 
 # --- 5. 可视化参数 ---
 # 通用绘图
-FIG_SIZE = (8, 6)
+FIG_SIZE = (5, 4)
 FONT_SIZE_TITLE = 12
 FONT_SIZE_LABEL = 12
 FONT_SIZE_LEGEND = 12
-LINE_WIDTH_TREND = 2
+LINE_WIDTH_TREND = 3.5
 # GPR trend/filtered scatter styling
 SCATTER_MARKER = 'o'
-SCATTER_SIZE = 16
-SCATTER_EDGE_COLOR = '#4c4c4c'
+# use a smaller hollow-circle marker
+SCATTER_SIZE = 10
+SCATTER_EDGE_COLOR = '#6a64ab'   # palette blue
 SCATTER_FACE_COLOR = 'none'
 SCATTER_ALPHA = 0.7
 SCATTER_LINEWIDTH = 0.8
-TREND_COLOR = '#d62728'
+# align trend line with the same palette hue
+TREND_COLOR = '#6a64ab'
+# Custom text for titles and legend
+TITLE_MAIN = "O-Cu-O Angle vs -IpCOHP"
+#TITLE_MAIN = "Cu GPR (Method: {method}, Kernel: {kernel})"
+#TITLE_R2 = "Train R²: {train:.3f}, Test R²: {test:.3f}"
+#LEGEND_FILTER_LABEL = "Cu Filtered Data"
+LEGEND_TREND_LABEL = "Cu GPR Trend"
+# Human-readable plot name (e.g., for saving, captions)
+PLOT_NAME = "O-Cu-O Angle vs -IpCOHP (GPR Trend)"
 
 # GPR 趋势线图 (图 5)
 PRED_ANGLE_MIN = 130.0   # 趋势线预测的最小角度 (用于生成趋势线数据)
@@ -114,6 +124,6 @@ RESIDUAL_X_LIMITS = None
 
 # --- 图像保存配置 ---
 SAVE_PLOTS = True                  # 是否自动保存图像 (True/False)
-SAVE_DIR = 'Ru_Results'           # 图像保存的文件夹名称
-DPI = 300                          # 保存图像的分辨率 (DPI)
+SAVE_DIR = 'Cu_Results'           # 图像保存的文件夹名称
+DPI = 600                          # 保存图像的分辨率 (DPI)
 FILE_FORMAT = 'png'                # 保存图像的文件格式 ('png', 'pdf', 'svg' 等)

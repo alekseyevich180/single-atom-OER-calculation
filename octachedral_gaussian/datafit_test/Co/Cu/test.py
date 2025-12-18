@@ -303,7 +303,7 @@ plt.figure(figsize=cfg.FIG_SIZE)
 plt.scatter(
     X_for_plot,
     y_for_plot,
-    label='Filtered Data',
+    #label=getattr(cfg, "LEGEND_FILTER_LABEL", "Filtered Data"),
     s=cfg.SCATTER_SIZE,
     facecolors=cfg.SCATTER_FACE_COLOR,
     edgecolors=cfg.SCATTER_EDGE_COLOR,
@@ -317,10 +317,18 @@ plt.plot(
     y_pred_original,
     color=cfg.TREND_COLOR,
     linewidth=cfg.LINE_WIDTH_TREND,
-    label='GPR Trend'
+    label=getattr(cfg, "LEGEND_TREND_LABEL", "GPR Trend")
 )
 
-plt.title(f'Gaussian Process Regression (Method: {best_method}, Kernel: {best_kernel})\nTrain R²: {train_r2:.3f}, Test R²: {test_r2:.3f}', fontsize=cfg.FONT_SIZE_TITLE)
+title_parts = []
+title_line1 = getattr(cfg, "TITLE_MAIN", None)
+if title_line1:
+    title_parts.append(title_line1.format(method=best_method, kernel=best_kernel))
+title_line2 = getattr(cfg, "TITLE_R2", None)
+if title_line2:
+    title_parts.append(title_line2.format(train=train_r2, test=test_r2))
+if title_parts:
+    plt.title("\n".join(title_parts), fontsize=cfg.FONT_SIZE_TITLE)
 plt.xlabel(cfg.X_LABEL_GPR, fontsize=cfg.FONT_SIZE_LABEL)
 plt.ylabel(cfg.Y_LABEL_GPR, fontsize=cfg.FONT_SIZE_LABEL)
 

@@ -63,7 +63,7 @@ KERNELS = {
 
 # --- 5. 可视化参数 ---
 # 通用绘图
-FIG_SIZE = (6, 4)
+FIG_SIZE = (5, 4)
 FONT_SIZE_TITLE = 12
 FONT_SIZE_LABEL = 12
 FONT_SIZE_LEGEND = 12

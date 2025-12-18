@@ -1,5 +1,6 @@
 # Combined trend plotting for all elements in datafit_test
 
+import argparse
 import importlib.util
 import os
 import warnings
@@ -18,11 +19,15 @@ PALETTE = [
     "#9f66a8",
     "#1b9e77",
     "#75c267",
-    "#5ec6ce",
     "#5a7fbf",
+    "#5ec6ce",
     "#6a64ab",
 ]
 
+TITLE_SIZE = 12
+LABEL_SIZE = 10
+TICK_SIZE = 9
+LEGEND_SIZE = 9
 
 def remove_outliers(X, y, cfg, method="zscore"):
     """Remove outliers using z-score, IQR, or MAD."""
@@ -131,8 +136,26 @@ def get_trend_line_for_element(element_name):
     return X_pred_original, y_pred_original
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Plot combined GPR trend lines.")
+    parser.add_argument(
+        "--legend",
+        action="store_true",
+        help="Show legends on the saved plots (hidden by default).",
+    )
+    parser.add_argument(
+        "--legend-frame",
+        action="store_true",
+        help="Draw a legend frame when legends are shown (implies --legend).",
+    )
+    return parser.parse_args()
+
+
 def main():
     """Discover elements automatically and plot combined trend lines."""
+    args = parse_args()
+    show_legend = args.legend or args.legend_frame
+    legend_frame = args.legend_frame
     current_dir = "."
     try:
         all_dirs = [
@@ -154,8 +177,8 @@ def main():
     colors = PALETTE
 
     plt.style.use("seaborn-v0_8-white")
-    fig, ax = plt.subplots(figsize=(12, 9))
-    fig_lines, ax_lines = plt.subplots(figsize=(12, 9))
+    fig, ax = plt.subplots(figsize=(5, 4))
+    fig_lines, ax_lines = plt.subplots(figsize=(5, 4))
 
     for i, element in enumerate(elements):
         X_pred, y_pred = get_trend_line_for_element(element)
@@ -190,27 +213,33 @@ def main():
                 marker="o",
             )
 
-    ax.set_title("Angle - ICOHP Trend Lines for Rutile Type Metal Elements", fontsize=18, fontweight="bold")
-    ax.set_xlabel("O-M-O Angle (deg)", fontsize=15)
-    ax.set_ylabel("-ICOHP (eV)", fontsize=15)
+    ax.set_title(
+        "Angle - ICOHP Trend Lines for Rutile Type Metal Elements",
+        fontsize=TITLE_SIZE,
+        fontweight="bold",
+    )
+    ax.set_xlabel("O-M-O Angle (deg)", fontsize=LABEL_SIZE)
+    ax.set_ylabel("-ICOHP (eV)", fontsize=LABEL_SIZE)
     ax.set_xlim(130, 180.6)
-    ax.set_ylim(0, 2.0)
-    ax.legend(fontsize=12, loc="best", frameon=True, shadow=True)
-    ax.tick_params(axis="both", which="major", labelsize=13)
-    fig.tight_layout(pad=1.5)
+    ax.set_ylim(0.4, 2.0)
+    if show_legend:
+        ax.legend(fontsize=LEGEND_SIZE, loc="best", frameon=legend_frame, shadow=legend_frame)
+    ax.tick_params(axis="both", which="major", labelsize=TICK_SIZE)
+    fig.tight_layout(pad=1.0)
 
     save_path = "Combined_GPR_Trends_Optimized.png"
     fig.savefig(save_path, dpi=600, bbox_inches="tight")
     print(f"\nCombined trend plot saved to {save_path}")
 
-    ax_lines.set_title("Angle - ICOHP Trend Lines (Predictions Only)", fontsize=18, fontweight="bold")
-    ax_lines.set_xlabel("O-M-O Angle (deg)", fontsize=15)
-    ax_lines.set_ylabel("-ICOHP (eV)", fontsize=15)
+    ax_lines.set_title("Angle - ICOHP Trend Lines", fontsize=TITLE_SIZE, fontweight="bold")
+    ax_lines.set_xlabel("O-M-O Angle (deg)", fontsize=LABEL_SIZE)
+    ax_lines.set_ylabel("-ICOHP (eV)", fontsize=LABEL_SIZE)
     ax_lines.set_xlim(130, 180.6)
-    ax_lines.set_ylim(0, 2.0)
-    ax_lines.legend(fontsize=12, loc="best", frameon=True, shadow=True)
-    ax_lines.tick_params(axis="both", which="major", labelsize=15)
-    fig_lines.tight_layout(pad=1.5)
+    ax_lines.set_ylim(0.4, 2.0)
+    if show_legend:
+        ax_lines.legend(fontsize=LEGEND_SIZE, loc="best", frameon=legend_frame, shadow=legend_frame)
+    ax_lines.tick_params(axis="both", which="major", labelsize=TICK_SIZE)
+    fig_lines.tight_layout(pad=1.0)
     save_path_lines = "Combined_GPR_Trends_LinesOnly.png"
     fig_lines.savefig(save_path_lines, dpi=600, bbox_inches="tight")
     print(f"Lines-only trend plot saved to {save_path_lines}")
