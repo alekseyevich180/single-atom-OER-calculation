@@ -67,7 +67,7 @@ FIG_SIZE = (6, 4)
 FONT_SIZE_TITLE = 12
 FONT_SIZE_LABEL = 12
 FONT_SIZE_LEGEND = 12
-LINE_WIDTH_TREND = 2
+LINE_WIDTH_TREND = 3.5
 # GPR trend/filtered scatter styling
 SCATTER_MARKER = 'o'
 # use a smaller hollow-circle marker

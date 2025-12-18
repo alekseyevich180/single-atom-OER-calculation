@@ -67,7 +67,7 @@ FIG_SIZE = (6, 4)
 FONT_SIZE_TITLE = 12
 FONT_SIZE_LABEL = 12
 FONT_SIZE_LEGEND = 12
-LINE_WIDTH_TREND = 2
+LINE_WIDTH_TREND = 3.5
 # GPR trend/filtered scatter styling
 SCATTER_MARKER = 'o'
 # use a smaller hollow-circle marker
@@ -75,7 +75,7 @@ SCATTER_SIZE = 10
 SCATTER_EDGE_COLOR = '#4c6f8c'   # palette blue
 SCATTER_FACE_COLOR = 'none'
 SCATTER_ALPHA = 0.7
-SCATTER_LINEWIDTH = 1.5
+SCATTER_LINEWIDTH = 0.8
 # align trend line with the same palette hue
 TREND_COLOR = '#4c6f8c'
 # Custom text for titles and legend
