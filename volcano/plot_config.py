@@ -38,6 +38,15 @@ CONFIG = {
         "axes_label_fontsize": 11,
         "title_fontsize": 12,
         "legend_fontsize": 9,
+        # Legend inside the plot (lower left) with a light frame.
+        "legend_loc": "lower left",
+        "legend_bbox": None,  # keep inside axes
+        "legend_ncol": 1,
+        "legend_frameon": True,
+        "legend_framealpha": 0.9,
+        "legend_handlelength": 1.8,
+        "legend_columnspacing": 1.0,
+        "legend_borderaxespad": 0.6,
         "annotation_fontsize": 9,
         "label_offsets": {
             "Ir": (10, 6),
@@ -48,6 +57,14 @@ CONFIG = {
         "title": "Volcano Plot",
         "xlabel_prefix": "Descriptor",
         "ylabel": r"- $\eta_{\mathrm{OER}}$ (V)",
+        # Optional legend text overrides (used inside the lower-left legend box)
+        # Supported keys: left_data, right_data, left_trend, right_trend.
+        "legend_labels": {
+            "left_data": "Strong-binding element",
+            "right_data": "Weak-binding element",
+            "left_trend": "#",   #"dG2 < {split:.2f} trend",
+            "right_trend": "#",  #"dG2 >= {split:.2f} trend",
+        },
     },
     "plot32": {
         "figsize": (5, 4),
@@ -75,8 +92,8 @@ CONFIG = {
         "annotation_fontsize": 10,
         # Optional custom legend text; fit labels support .format(y, m, b, r2)
         "legend_labels": {
-            "y1_data": "ΔEO - ΔEHO (eV) data",
-            "y2_data": "ΔEHOO - ΔEHO (eV) data",
+            "y1_data": "ΔEO - ΔEHO (eV)",
+            "y2_data": "ΔEHOO - ΔEHO (eV)",
             "y1_fit": "y={m:.3f}x+{b:.3f}, R²={r2:.3f}",
             "y2_fit": "y={m:.3f}x+{b:.3f}, R²={r2:.3f}",
         },

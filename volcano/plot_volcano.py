@@ -158,6 +158,20 @@ def filter_and_plot_data(file_path, output_dir=None):
 
         left_fit = fit_line(left_df)
         right_fit = fit_line(right_df)
+        legend_labels = cfg.get("legend_labels", {})
+
+        def legend_text(key, default, **fmt_kwargs):
+            template = legend_labels.get(key)
+            if template:
+                try:
+                    text = template.format(**fmt_kwargs)
+                except Exception:
+                    text = template  # fallback if formatting fails
+                # Allow suppressing specific legend entries by prefixing with "#" or leaving blank.
+                if text is None or str(text).strip().startswith("#") or str(text).strip() == "":
+                    return None
+                return text
+            return default if (default and not str(default).strip().startswith("#")) else None
 
         x_axis_min, x_axis_max = cfg.get("x_axis_limits", (0.0, 3.0))
         plt.figure(figsize=cfg.get("figsize", (10, 7)))
@@ -174,7 +188,7 @@ def filter_and_plot_data(file_path, output_dir=None):
                 color=left_color,
                 marker=scatter_marker,
                 s=scatter_size,
-                label=cfg.get("left_label", f"{x_col_name} < split"),
+                label=legend_text("left_data", cfg.get("left_label", f"{x_col_name} < split")),
             )
         if not right_df.empty:
             plt.scatter(
@@ -184,7 +198,7 @@ def filter_and_plot_data(file_path, output_dir=None):
                 color=right_color,
                 marker=scatter_marker,
                 s=scatter_size,
-                label=cfg.get("right_label", f"{x_col_name} >= split"),
+                label=legend_text("right_data", cfg.get("right_label", f"{x_col_name} >= split")),
             )
 
         if left_fit and right_fit and not left_df.empty and not right_df.empty:
@@ -207,7 +221,7 @@ def filter_and_plot_data(file_path, output_dir=None):
                     color=cfg.get("trend_left_color", "orange"),
                     linestyle=line_style,
                     linewidth=line_width,
-                    label=f'{x_col_name} < {x_int:.2f} trend',
+                    label=legend_text("left_trend", f'{x_col_name} < {x_int:.2f} trend', split=x_int),
                 )
                 plt.plot(
                     x_right_range,
@@ -215,7 +229,7 @@ def filter_and_plot_data(file_path, output_dir=None):
                     color=cfg.get("trend_right_color", "purple"),
                     linestyle=line_style,
                     linewidth=line_width,
-                    label=f'{x_col_name} >= {x_int:.2f} trend',
+                    label=legend_text("right_trend", f'{x_col_name} >= {x_int:.2f} trend', split=x_int),
                 )
                 plt.scatter(
                     [x_int],
@@ -262,17 +276,32 @@ def filter_and_plot_data(file_path, output_dir=None):
             plt.xlim(*cfg["xlim"])
         if "ylim" in cfg:
             plt.ylim(*cfg["ylim"])
-        if legend_fs:
-            leg = plt.legend()
-            if leg:
-                for text in leg.get_texts():
-                    text.set_fontsize(legend_fs)
+        legend_kwargs = {
+            "loc": cfg.get("legend_loc", "center left"),
+            "bbox_to_anchor": cfg.get("legend_bbox", (1.02, 0.5)),
+            "ncol": cfg.get("legend_ncol", 1),
+            "frameon": cfg.get("legend_frameon", True),
+            "framealpha": cfg.get("legend_framealpha", None),
+            "handlelength": cfg.get("legend_handlelength", None),
+            "columnspacing": cfg.get("legend_columnspacing", None),
+            "borderaxespad": cfg.get("legend_borderaxespad", None),
+        }
+        # Remove None entries so matplotlib uses its defaults.
+        legend_kwargs = {k: v for k, v in legend_kwargs.items() if v is not None}
+        leg = plt.legend(**legend_kwargs)
+        if legend_fs and leg:
+            for text in leg.get_texts():
+                text.set_fontsize(legend_fs)
 
         target_dir = Path(output_dir) if output_dir else Path(".")
         os.makedirs(target_dir, exist_ok=True)
         output_filename = target_dir / 'volcano_plot.png'
         dpi = cfg.get("dpi", None)
-        plt.savefig(output_filename, dpi=dpi)
+        # Tighten layout/bbox to prevent y-label clipping at smaller figure sizes.
+        plt.tight_layout()
+        bbox_inches = cfg.get("bbox_inches", "tight")
+        pad_inches = cfg.get("pad_inches", 0.1)
+        plt.savefig(output_filename, dpi=dpi, bbox_inches=bbox_inches, pad_inches=pad_inches)
         plt.close()
 
         print(f"\nPlot successfully generated and saved as '{output_filename}'.")

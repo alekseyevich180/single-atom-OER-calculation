@@ -229,7 +229,11 @@ def plot_three_lines(file_path, output_dir=None):
     os.makedirs(target_dir, exist_ok=True)
     out_path = target_dir / "plot_32.png"
     dpi = cfg.get("dpi", None)
-    plt.savefig(out_path, dpi=dpi)
+    # Tighten layout/bbox so the y-label is not clipped at smaller figure sizes.
+    plt.tight_layout()
+    bbox_inches = cfg.get("bbox_inches", "tight")
+    pad_inches = cfg.get("pad_inches", 0.1)
+    plt.savefig(out_path, dpi=dpi, bbox_inches=bbox_inches, pad_inches=pad_inches)
     print(f"Saved plot to {out_path}")
 
 
