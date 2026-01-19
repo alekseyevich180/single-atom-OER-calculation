@@ -83,7 +83,7 @@ TITLE_MAIN = "O-Fe-O Angle vs -IpCOHP"
 #TITLE_MAIN = "Co GPR (Method: {method}, Kernel: {kernel})"
 #TITLE_R2 = "Train R²: {train:.3f}, Test R²: {test:.3f}"
 #LEGEND_FILTER_LABEL = "Co Filtered Data"
-LEGEND_TREND_LABEL = "Co GPR Trend"
+LEGEND_TREND_LABEL = "Fe GPR Trend"
 # Human-readable plot name (e.g., for saving, captions)
 PLOT_NAME = "O-Fe-O Angle vs -IpCOHP (GPR Trend)"
 
