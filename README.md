@@ -2,6 +2,8 @@
 
 This repository collects small Python utilities for computational materials science workflows around single-atom and oxide catalyst studies. The codebase is script-oriented rather than packaged as a single library, and most tools are intended to be run directly inside their own folders.
 
+The previous version is the same user's [geo_angle_distance](https://github.com/alekseyevich180/geo_angle_distance) repository.
+
 The current repository focuses on four areas:
 
 - VASP workflow helpers for generating `INCAR`/`POTCAR` inputs and post-processing adsorption-energy data.
