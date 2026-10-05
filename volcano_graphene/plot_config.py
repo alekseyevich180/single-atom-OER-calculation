@@ -67,6 +67,7 @@ CONFIG = {
         },
     },
     "plot32": {
+        "ylim": None,  # Automatically show the full adsorption-energy range.
         "figsize": (5, 4),
         "dpi": 600,
         "scatter_alpha": 0.7,
@@ -83,7 +84,7 @@ CONFIG = {
         "line_style": "--",
         "line_width": 1.3,
         "grid": {"linestyle": "--", "linewidth": 0.5, "which": "both"},
-        "title": r"The relation between $\Delta E_{\mathrm{O*}}$ - $\Delta E_{\mathrm{HO*}}$ and $\Delta E_{\mathrm{HOO*}}$ - $\Delta E_{\mathrm{HO*}}$",
+        "title": r"$\Delta E_{\mathrm{O*}}$ and $\Delta E_{\mathrm{HOO*}}$ versus $\Delta E_{\mathrm{HO*}}$",
         "ylabel": r"$\Delta E_{\mathrm{ads}}$ (eV)",
         "xlabel_override": r"$\Delta E_{\mathrm{HO*}}$ (eV)",  # optional custom x-axis label
         "axes_label_fontsize": 11,
@@ -92,8 +93,8 @@ CONFIG = {
         "annotation_fontsize": 10,
         # Optional custom legend text; fit labels support .format(y, m, b, r2)
         "legend_labels": {
-            "y1_data": "ΔEO - ΔEHO (eV)",
-            "y2_data": "ΔEHOO - ΔEHO (eV)",
+            "y1_data": "ΔEO (eV)",
+            "y2_data": "ΔEHOO (eV)",
             "y1_fit": "y={m:.3f}x+{b:.3f}, R²={r2:.3f}",
             "y2_fit": "y={m:.3f}x+{b:.3f}, R²={r2:.3f}",
         },
