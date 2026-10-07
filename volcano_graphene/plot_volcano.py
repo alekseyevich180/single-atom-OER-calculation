@@ -15,6 +15,7 @@ DEFAULT_ALLOWED_LABELS = [
 ]
 
 
+@plt.rc_context(CONFIG.get("style", {}))
 def filter_and_plot_data(file_path, output_dir=None):
     """
     Reads HOO-only OER data, filters, deduplicates elements, and plots a volcano chart.
@@ -169,6 +170,7 @@ def filter_and_plot_data(file_path, output_dir=None):
 
         x_axis_min, x_axis_max = cfg.get("x_axis_limits", (0.0, 3.0))
         plt.figure(figsize=cfg.get("figsize", (10, 7)))
+        plt.tick_params(labelsize=cfg.get("tick_label_fontsize", 10))
         left_color = cfg.get("scatter_left_color") or cfg.get("trend_left_color", "tab:blue")
         right_color = cfg.get("scatter_right_color") or cfg.get("trend_right_color", "tab:purple")
         scatter_alpha = cfg.get("scatter_alpha", 0.7)
