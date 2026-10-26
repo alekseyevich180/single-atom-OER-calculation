@@ -90,20 +90,49 @@ def plot_three_lines(file_path, output_dir=None, all_data=False):
     ax.margins(*cfg.get("margins", (0.05, 0.05)))
     if cfg.get("ylim") is not None:
         ax.set_ylim(*cfg["ylim"])
-    ax.legend(handles=scatter_handles + fit_handles,
-              loc=cfg.get("legend_loc", "lower right"), fontsize=cfg.get("legend_fontsize", 9),
-              framealpha=cfg.get("legend_framealpha", 0.8), frameon=cfg.get("legend_frameon", True),
-              handlelength=cfg.get("legend_handlelength", 2.0))
-    # Reference layout: labels at points, with only the configured manual offsets.
+    legend = ax.legend(
+        handles=scatter_handles + fit_handles,
+        loc=cfg.get("legend_loc", "lower right"), fontsize=cfg.get("legend_fontsize", 9),
+        framealpha=cfg.get("legend_framealpha", 0.8), frameon=cfg.get("legend_frameon", True),
+        handlelength=cfg.get("legend_handlelength", 2.0))
+    fig.tight_layout()
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    # Match volcano_plots: avoid other labels, data markers, and the legend.
+    occupied = [legend.get_window_extent(renderer).expanded(1.02, 1.04)]
+    points = [ax.transData.transform((xx, yy)) for y in ys for xx, yy in zip(x, y)]
+    from matplotlib.transforms import Bbox
+    point_boxes = [Bbox.from_bounds(px - 5, py - 5, 10, 10) for px, py in points]
+    axes_box = ax.get_window_extent(renderer)
+    candidates = [(4, 5), (4, -12), (-5, 5), (-5, -12), (0, 13), (0, -20)]
+    candidates += [(dx, dy) for dy in (22, -28, 32, -38, 42, -48)
+                   for dx in (0, 15, -15, 30, -30)]
     for y, color in zip(ys, colors):
         for name, xx, yy in zip(df["element"].astype(str), x, y):
             if not ax.get_ylim()[0] <= yy <= ax.get_ylim()[1]:
                 continue
-            ax.annotate(name, (xx, yy),
-                        xytext=cfg.get("label_offsets", {}).get(name, (0, 0)),
-                        textcoords="offset points",
-                        fontsize=cfg.get("annotation_fontsize", 10), color=color)
-    fig.tight_layout()
+            annotation = ax.annotate(name, (xx, yy), xytext=(4, 5),
+                                     textcoords="offset points",
+                                     fontsize=cfg.get("annotation_fontsize", 10), color=color,
+                                     annotation_clip=False)
+            best = None
+            for dx, dy in candidates:
+                annotation.set_position((dx, dy))
+                annotation.set_ha("right" if dx < 0 else "left" if dx > 0 else "center")
+                box = annotation.get_window_extent(renderer).expanded(1.1, 1.12)
+                overlaps = sum(box.overlaps(other) for other in occupied)
+                hits = sum(box.overlaps(other) for other in point_boxes)
+                outside = not (axes_box.contains(box.x0, box.y0) and axes_box.contains(box.x1, box.y1))
+                score = 10000 * outside + 1000 * overlaps + 100 * hits + abs(dx) + abs(dy)
+                if best is None or score < best[0]:
+                    best = (score, dx, dy, annotation.get_ha(), box)
+            _, dx, dy, ha, box = best
+            annotation.set_position((dx, dy))
+            annotation.set_ha(ha)
+            occupied.append(box)
+            if abs(dx) + abs(dy) > 25:
+                ax.annotate("", (xx, yy), xytext=(dx, dy + 3), textcoords="offset points",
+                            arrowprops={"arrowstyle": "-", "color": color, "lw": 0.5, "alpha": 0.6})
 
     stem = target / ("plot_32_all_data" if all_data else "plot_32")
     fig.savefig(stem.with_suffix(".png"), dpi=cfg.get("dpi", 600), bbox_inches="tight")

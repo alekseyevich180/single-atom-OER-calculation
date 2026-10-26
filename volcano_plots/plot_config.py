@@ -1,4 +1,14 @@
 CONFIG = {
+    "style": {
+        "font.family": "DejaVu Sans",
+        "font.size": 10,
+        "mathtext.fontset": "dejavusans",
+        "axes.linewidth": 0.8,
+        "axes.facecolor": "white",
+        "figure.facecolor": "white",
+        "xtick.direction": "out",
+        "ytick.direction": "out",
+    },
     # Elements allowed for plotting; labels use the base name (suffixes are for selection preference only).
     "allowed_elements": [
         "Ag", "Au", "Bi", "Cd", "Co",
@@ -84,13 +94,20 @@ CONFIG = {
         "line_style": "--",
         "line_width": 1.3,
         "grid": {"linestyle": "--", "linewidth": 0.5, "which": "both"},
-        "title": r"$\Delta E_{\mathrm{O*}}$ and $\Delta E_{\mathrm{HOO*}}$ versus $\Delta E_{\mathrm{HO*}}$",
+        # Match the reference title used by volcano_graphene.
+        "title": r"The relation between $\Delta E_{\mathrm{O*}}$ - $\Delta E_{\mathrm{HO*}}$ and $\Delta E_{\mathrm{HOO*}}$ - $\Delta E_{\mathrm{HO*}}$",
         "ylabel": r"$\Delta E_{\mathrm{ads}}$ (eV)",
         "xlabel_override": r"$\Delta E_{\mathrm{HO*}}$ (eV)",  # optional custom x-axis label
         "axes_label_fontsize": 11,
         "title_fontsize": 12,
         "legend_fontsize": 9,
         "annotation_fontsize": 10,
+        "tick_label_fontsize": 10,
+        "legend_loc": "lower right",
+        "legend_framealpha": 0.8,
+        "legend_frameon": True,
+        "legend_handlelength": 2.0,
+        "margins": (0.05, 0.05),
         # Optional custom legend text; fit labels support .format(y, m, b, r2)
         "legend_labels": {
             "y1_data": "ΔEO (eV)",
